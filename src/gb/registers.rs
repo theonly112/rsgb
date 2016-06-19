@@ -100,8 +100,8 @@ impl Registers {
         self.f |= f as u8;
     }
 
-    pub fn check(&mut self, f: Flags) -> bool {
-        return self.f & (f as u8) > 0;
+    pub fn check(&self, f: Flags) -> bool {
+        return (self.f & (f as u8)) > 0;
     }
 
     pub fn clear(&mut self, f: Flags) {

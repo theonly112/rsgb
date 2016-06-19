@@ -6,7 +6,6 @@ use gb::mmu::MmuRead;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::ops::DerefMut;
 
 pub struct System {
     registers: Rc<RefCell<Registers>>,
