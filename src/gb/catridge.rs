@@ -5,7 +5,7 @@ use std::io::Error;
 use std::io::Read;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Cartrige {
     pub cartirge_type: CartridgeType,
     pub rom: Vec<u8>,
@@ -24,7 +24,7 @@ impl Cartrige {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[derive(PartialEq)]
 pub enum CartridgeType {
     Plain,

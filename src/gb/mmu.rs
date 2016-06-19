@@ -1,25 +1,27 @@
 use gb::catridge::Cartrige;
 
+use std::rc::Rc;
+
 pub struct Mmu {
-    rom: Vec<u8>,
+    cart: Rc<Cartrige>,
 }
 
 impl Mmu {
-    pub fn new(cart: Cartrige) -> Mmu {
-        Mmu { rom: cart.rom }
+    pub fn new(cart: Rc<Cartrige>) -> Mmu {
+        Mmu { cart: cart }
     }
 }
 
 impl MmuRead for Mmu {
     fn read_u8(&self, addr: u16) -> u8 {
         match addr {
-            0x0000...0x7FFF => self.rom[addr as usize],
+            0x0000...0x7FFF => self.cart.rom[addr as usize],
             _ => panic!("invalid addr"),
         }
     }
 
     fn read_u16(&self, addr: u16) -> u16 {
-        0
+        self.read_u8(addr) as u16 + ((self.read_u8(addr + 1) as u16) << 8)
     }
 
     fn write_u8(&self, addr: u16, val: u8) {}

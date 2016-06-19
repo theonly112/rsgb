@@ -17,6 +17,6 @@ fn main() {
     }
     let path = Path::new(&args[1]);
     let c = Cartrige::from_path(path).unwrap();
-    let system = System::new(c);
+    let mut system = System::new(c);
     system.run();
 }
