@@ -31,7 +31,7 @@ impl<'window> SdlDisplay<'window> {
         let context = sdl2::init().unwrap();
         let video_subsystem = context.video().unwrap();
 
-        let window = video_subsystem.window("rsgb", 160, 144)
+        let window = video_subsystem.window("rsgb", 160 * 4, 144 * 4)
             .position_centered()
             .build()
             .unwrap();
@@ -71,6 +71,8 @@ impl<'window> Display for SdlDisplay<'window> {
             })
             .unwrap();
 
+        let mut pump = self.context.event_pump().unwrap();
+        pump.pump_events();
 
         self.renderer.clear();
         self.renderer.copy(&self.texture, None, None).unwrap();
