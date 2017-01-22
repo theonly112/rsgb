@@ -1,3 +1,5 @@
 target
 .vscode
 TestRoms
+SDL2.dll
+exec.log

@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+#[derive(Copy, Clone)]
 pub enum Reg8 {
     A,
     F,
@@ -8,12 +10,14 @@ pub enum Reg8 {
     H,
     L,
 }
-
+#[derive(Copy, Clone)]
 pub enum Reg16 {
     AF,
     BC,
     DE,
     HL,
+    SP,
+    PC,
 }
 
 
@@ -25,10 +29,10 @@ pub enum Flags {
 }
 
 pub struct Registers {
-    a: u8,
+    pub a: u8,
     f: u8,
     b: u8,
-    c: u8,
+    pub c: u8,
     d: u8,
     e: u8,
     h: u8,
@@ -53,17 +57,19 @@ impl Registers {
         }
     }
 
-    pub fn read_r16(&self, r: &Reg16) -> u16 {
-        match *r {
+    pub fn read_r16(&self, r: Reg16) -> u16 {
+        match r {
             Reg16::AF => ((self.a as u16) << 8) + self.f as u16,
             Reg16::BC => ((self.b as u16) << 8) + self.c as u16,
             Reg16::DE => ((self.d as u16) << 8) + self.e as u16,
             Reg16::HL => ((self.h as u16) << 8) + self.l as u16,
+            Reg16::SP => self.sp,
+            Reg16::PC => self.pc,
         }
     }
 
-    pub fn read_r8(&self, r: &Reg8) -> u8 {
-        match *r {
+    pub fn read_r8(&self, r: Reg8) -> u8 {
+        match r {
             Reg8::A => self.a,
             Reg8::F => self.f,
             Reg8::B => self.b,
@@ -93,6 +99,8 @@ impl Registers {
                 self.h = (val >> 8) as u8;
                 self.l = (val & 0xff) as u8
             }
+            Reg16::SP => self.sp = val,
+            Reg16::PC => self.pc = val,
         }
     }
 
@@ -108,8 +116,8 @@ impl Registers {
         self.f &= !(f as u8);
     }
 
-    pub fn write_r8(&mut self, r: &Reg8, val: u8) {
-        match *r {
+    pub fn write_r8(&mut self, r: Reg8, val: u8) {
+        match r {
             Reg8::A => self.a = val,
             Reg8::F => self.f = val,
             Reg8::B => self.b = val,
@@ -119,5 +127,20 @@ impl Registers {
             Reg8::H => self.h = val,
             Reg8::L => self.l = val,
         }
+    }
+}
+
+
+use std::fmt;
+impl fmt::Debug for Registers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,
+               "PC: {:04X} SP: {:04X} AF: {:04X} BC: {:04X} DE: {:04X} HL: {:04X}",
+               self.pc,
+               self.sp,
+               self.read_r16(Reg16::AF),
+               self.read_r16(Reg16::BC),
+               self.read_r16(Reg16::DE),
+               self.read_r16(Reg16::HL))
     }
 }
