@@ -9,6 +9,8 @@ use sdl2::keyboard::Keycode;
 use sdl2::*;
 
 extern crate sdl2;
+extern crate time;
+
 
 pub trait Display {
     fn draw(&mut self, framebuffer: [Color; 160 * 144]);
@@ -18,6 +20,7 @@ pub struct SdlDisplay<'window> {
     pub renderer: Renderer<'window>,
     #[allow(dead_code)]
     context: Sdl,
+    last_frame_time: f64,
 }
 
 impl<'window> SdlDisplay<'window> {
@@ -38,13 +41,23 @@ impl<'window> SdlDisplay<'window> {
                 .build()
                 .unwrap(),
             context: context,
+            last_frame_time: 0f64,
         }
     }
 }
 
+
 impl<'window> Display for SdlDisplay<'window> {
     fn draw(&mut self, framebuffer: [Color; 160 * 144]) {
-        // print!("Drawing framebuffer");
+        if self.last_frame_time == 0f64 {
+            self.last_frame_time = time::precise_time_s();
+        } else {
+            let current = time::precise_time_s();
+            let delta = current - self.last_frame_time;
+            self.last_frame_time = current;
+            println!("FPS {}", 1f64 / delta);
+        }
+
 
         let mut texture = self.renderer
             .create_texture_streaming(PixelFormatEnum::RGB24, 160, 144)

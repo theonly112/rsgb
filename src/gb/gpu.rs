@@ -134,7 +134,7 @@ impl Gpu {
         let scanline = self.scanline;
         self.render_background(scanline);
         self.render_window();
-        self.render_sprites();
+        // self.render_sprites();
     }
 
     fn render_window(&self) {
@@ -143,7 +143,7 @@ impl Gpu {
         //    None => panic!("..."),
         // };
 
-        let ref mmu = self.mmu.as_ref().unwrap();
+        // let ref mmu = self.mmu.as_ref().unwrap();
         // mmu.borrow_mut();
         // TODO:
     }
@@ -182,9 +182,9 @@ impl Gpu {
             let pixely_2: u16 = (pixely * 2) as u16;
 
             for x in 0..32 {
-                let mut tile: i32 = 0;
+                let mut tile: i32;
                 if tiles == 0x8800 {
-                    tile = (mmu.read_u8((map + y_32 + x) as u16) as i32);
+                    tile = mmu.read_u8((map + y_32 + x) as u16) as i32;
                     tile += 128;
                 } else {
                     tile = mmu.read_u8((map + y_32 + x) as u16) as i32;
@@ -200,9 +200,9 @@ impl Gpu {
                 for pixelx in 0..8 {
                     // TODO this -scx seems weird
                     let buffer_x = map_offset + pixelx - scx as u16;
-                    if buffer_x < 0 {
-                        continue;
-                    }
+                    //if buffer_x < 0 {
+                    //    continue;
+                    //}
                     if buffer_x > 160 {
                         continue;
                     }
@@ -222,7 +222,7 @@ impl Gpu {
 
                     let position = line_width + buffer_x as i32;
                     let tmp_palette = mmu.read_u8(0xff47);
-                    let color = ((tmp_palette >> (pixel * 2)) & 0x03);
+                    let color = (tmp_palette >> (pixel * 2)) & 0x03;
 
                     self.framebuffer[position as usize] = self.background_palette[color as usize];
                 }
@@ -231,10 +231,87 @@ impl Gpu {
         }
     }
 
+    fn render_sprites(&mut self) {
+        const GPU_CONTROL_TILEMAP: u8 = 8;
+        let mut map_offset = if (self.control & GPU_CONTROL_TILEMAP) != 0 {
+            0x1c00
+        } else {
+            0x1800
+        };
 
+        map_offset += (((self.scanline + self.scroll_y) & 255) >> 3) << 5;
 
-    fn render_sprites(&self) {
-        // TODO:
+        let mut line_offset = self.scroll_x >> 3;
+        let mut x = self.scroll_x & 7;
+        let y = (self.scanline + self.scroll_y) & 7;
+
+        let mut pixel_offset = self.scanline * 160;
+
+        const VRAM_OFFSET: u16 = 0x8000;
+        let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
+
+        let mut tile = mmu.read_u8(VRAM_OFFSET + line_offset as u16);
+
+        let mut scanline_row: [u8; 160] = [0; 160];
+        for i in 0..160 {
+            let color = self.tiles[x as usize][y as usize][tile as usize];
+            scanline_row[i] = color;
+
+            pixel_offset += 1;
+            x += 1;
+
+            if x == 8 {
+                x = 0;
+                line_offset = (line_offset + 1) & 31;
+                tile = mmu.read_u8(map_offset as u16 + line_offset as u16);
+            }
+        }
+
+        const oamOffset: u16 = 0xFE00;
+        const spriteSize: u16 = 4;
+
+        for i in 0..40 {
+            let sprite_y = mmu.read_u8(oamOffset + i * spriteSize) - 16;
+            let sprite_x = mmu.read_u8(oamOffset + i * spriteSize + 1) - 8;
+            let sprite_tilenumber = mmu.read_u8(oamOffset + i * spriteSize + 2);
+            let sprite_options = mmu.read_u8(oamOffset + i * spriteSize + 3);
+
+            let flipx = (sprite_options & 0x20) == 0x20;
+            let flipy = (sprite_options & 0x40) == 0x40;
+
+            if sprite_y <= self.scanline && (sprite_y + 8) > self.scanline {
+                let palette = if sprite_options & 0x10 != 0 { 1 } else { 0 };
+
+                let mut tile_row: u8 = 0;
+                if flipx {
+                    tile_row = 7 - (self.scanline - sprite_y);
+                } else {
+                    tile_row = self.scanline - sprite_y;
+                }
+
+                for xx in 0..8 {
+                    // todo priority
+                    if sprite_x + xx >= 0 {
+                        let mut color: u8 = 0;
+                        if flipy {
+                            color = self.tiles[(7 - xx) as usize][tile_row as usize][sprite_tilenumber as usize];
+                        } else {
+                            color = self.tiles[xx as usize][tile_row as usize][sprite_tilenumber as usize];
+                        }
+                        if color > 0 {
+                            let palette_offset: usize = palette * 4;
+                            self.framebuffer[pixel_offset as usize].r =
+                                self.sprite_palette[color as usize + palette_offset].r;
+                            self.framebuffer[pixel_offset as usize].g =
+                                self.sprite_palette[color as usize + palette_offset].g;
+                            self.framebuffer[pixel_offset as usize].b =
+                                self.sprite_palette[color as usize + palette_offset].b;
+                        }
+                        pixel_offset = pixel_offset + 1;
+                    }
+                }
+            }
+        }
     }
 
     pub fn get_scanline(&self) -> u8 {

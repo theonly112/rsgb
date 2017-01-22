@@ -5,3 +5,4 @@ authors = ["theonly112@gmail.com"]
 
 [dependencies]
 sdl2 = "0.27.3"
+time = "0.1"

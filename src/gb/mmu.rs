@@ -172,6 +172,9 @@ impl MmuRead for Mmu {
 
 impl SystemComponent for Mmu {
     fn reset(&mut self) {
+        for i in 0..255 {
+            self.io[i] = IO_RESET[i];
+        }
         self.write_u8(0xFF05, 0);
         self.write_u8(0xFF06, 0);
         self.write_u8(0xFF07, 0);
@@ -203,9 +206,7 @@ impl SystemComponent for Mmu {
         self.write_u8(0xFF4A, 0x00);
         self.write_u8(0xFF4B, 0x00);
         self.write_u8(0xFFFF, 0x00);
-        for i in 0..255 {
-            self.io[i] = IO_RESET[i];
-        }
+
     }
 }
 

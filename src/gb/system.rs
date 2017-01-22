@@ -47,15 +47,15 @@ impl System {
     pub fn run(&mut self, mut dis: &mut SdlDisplay) {
         self.mmu.borrow_mut().reset();
         self.gpu.borrow_mut().reset();
-        use std::io::prelude::*;
-        use std::fs::File;
-        let mut buffer = File::create("exec.log").unwrap();
+        // use std::io::prelude::*;
+        // use std::fs::File;
+        // let mut buffer = File::create("exec.log").unwrap();
         while true {
-            write!(&mut buffer,
-                   "{:?} TK: {}\n",
-                   self.registers.borrow(),
-                   self.cpu.ticks)
-                .unwrap();
+            // write!(&mut buffer,
+            //        "{:?} TK: {}\n",
+            //        self.registers.borrow(),
+            //        self.cpu.ticks)
+            //     .unwrap();
             let pc = self.registers.borrow().pc;
             let instruction = self.mmu.borrow().read_u8(self.registers.borrow().pc);
             self.registers.borrow_mut().pc = pc + 1;

@@ -33,10 +33,13 @@ impl Cpu {
         match instruction {
             0x00 => self.nop(),
             0x01 => self.ld_r16_nn(Reg16::BC),
+            0x03 => self.inc_r16(Reg16::BC),
             0x05 => self.dec_r8(Reg8::B),
             0x06 => self.ld_r8_n(Reg8::B),
             0x07 => self.rlca(),
             0x08 => self.ld_nn_ptr_sp(),
+            0x09 => self.add_hl_r16(Reg16::BC),
+            0x0a => self.ld_r8_r16ptr(Reg8::A, Reg16::BC),
             0x0b => self.dec_r16(Reg16::BC),
             0x0c => self.inc_r8(Reg8::C),
             0x0d => self.dec_r8(Reg8::C),
@@ -50,57 +53,94 @@ impl Cpu {
             0x18 => self.jr_n(),
             0x19 => self.add_hl_r16(Reg16::DE),
             0x1a => self.ld_r8_r16ptr(Reg8::A, Reg16::DE),
+            0x1b => self.dec_r16(Reg16::DE),
             0x1c => self.inc_r8(Reg8::E),
+            0x1d => self.dec_r8(Reg8::E),
+            0x1e => self.ld_r8_n(Reg8::E),
             0x1f => self.rra(),
             0x20 => self.jr_nz_n(),
             0x21 => self.ld_r16_nn(Reg16::HL),
             0x22 => self.ldi_hlptr_a(),
             0x23 => self.inc_r16(Reg16::HL),
             0x25 => self.dec_r8(Reg8::H),
+            0x26 => self.ld_r8_n(Reg8::H),
+            0x27 => self.daa(),
             0x28 => self.jr_z_n(),
             0x29 => self.add_hl_r16(Reg16::HL),
             0x2a => self.ldi_a_hlptr(),
             0x2c => self.inc_r8(Reg8::L),
+            0x2d => self.dec_r8(Reg8::L),
+            0x2e => self.ld_r8_n(Reg8::L),
             0x2f => self.cpl(),
             0x31 => self.ld_r16_nn(Reg16::SP),
             0x32 => self.ldd_hl_ptr_a(),
             0x34 => self.inc_hlptr(),
             0x35 => self.dec_hlptr(),
             0x36 => self.ld_hlptr_n(),
+            0x3a => self.ldd_a_hlptr(),
             0x3c => self.inc_r8(Reg8::A),
             0x3d => self.dec_r8(Reg8::A),
             0x3E => self.ld_r8_n(Reg8::A),
+            0x40 => self.ld_r8_r8(Reg8::B, Reg8::B),
+            0x46 => self.ld_r8_r16ptr(Reg8::B, Reg16::HL),
             0x47 => self.ld_r8_r8(Reg8::B, Reg8::A),
+            0x4e => self.ld_r8_r16ptr(Reg8::C, Reg16::HL),
             0x4f => self.ld_r8_r8(Reg8::C, Reg8::A),
+            0x54 => self.ld_r8_r8(Reg8::D, Reg8::H),
             0x56 => self.ld_r8_r16ptr(Reg8::D, Reg16::HL),
+            0x57 => self.ld_r8_r8(Reg8::D, Reg8::A),
             0x5e => self.ld_r8_r16ptr(Reg8::E, Reg16::HL),
             0x5d => self.ld_r8_r8(Reg8::E, Reg8::L),
             0x5f => self.ld_r8_r8(Reg8::E, Reg8::A),
+            0x60 => self.ld_r8_r8(Reg8::H, Reg8::B),
+            0x62 => self.ld_r8_r8(Reg8::H, Reg8::D),
+            0x67 => self.ld_r8_r8(Reg8::H, Reg8::A),
+            0x69 => self.ld_r8_r8(Reg8::L, Reg8::C),
+            0x6b => self.ld_r8_r8(Reg8::L, Reg8::E),
+            0x6f => self.ld_r8_r8(Reg8::L, Reg8::A),
+            0x71 => self.ld_r16_ptr_r8(Reg16::HL, Reg8::C),
+            0x72 => self.ld_r16_ptr_r8(Reg16::HL, Reg8::D),
+            0x73 => self.ld_r16_ptr_r8(Reg16::HL, Reg8::E),
             0x77 => self.ld_r16_ptr_r8(Reg16::HL, Reg8::A),
             0x78 => self.ld_r8_r8(Reg8::A, Reg8::B),
             0x79 => self.ld_r8_r8(Reg8::A, Reg8::C),
+            0x7a => self.ld_r8_r8(Reg8::A, Reg8::D),
             0x7b => self.ld_r8_r8(Reg8::A, Reg8::E),
             0x7c => self.ld_r8_r8(Reg8::A, Reg8::H),
+            0x7d => self.ld_r8_r8(Reg8::A, Reg8::L),
             0x7e => self.ld_r8_r16ptr(Reg8::A, Reg16::HL),
+            0x80 => self.add_a_r8(Reg8::B),
+            0x85 => self.add_a_r8(Reg8::L),
+            0x86 => self.add_a_hlptr(),
             0x87 => self.add_a_r8(Reg8::A),
-            0xa1 => self.and_r8(Reg8::B),
+            0x89 => self.adc_r8(Reg8::C),
+            0x8e => self.adc_hlptr(),
+            0xa0 => self.and_r8(Reg8::B),
+            0xa1 => self.and_r8(Reg8::C),
             0xa7 => self.and_r8(Reg8::A),
+            0xa8 => self.xor_r8(Reg8::B),
             0xa9 => self.xor_r8(Reg8::C),
             0xaf => self.xor_r8(Reg8::A),
             0xb0 => self.or_r8(Reg8::B),
             0xb1 => self.or_r8(Reg8::C),
+            0xb8 => self.cp_r8(Reg8::B),
+            0xb9 => self.cp_r8(Reg8::C),
             0xbf => self.cp_r8(Reg8::A),
             0xc0 => self.ret_nz(),
             0xc1 => self.pop_r16(Reg16::BC),
+            0xc2 => self.jp_nz_nn(),
             0xc3 => self.jp_nn(),
             0xc5 => self.push_r16(Reg16::BC),
+            0xc6 => self.add_a_n(),
             0xc8 => self.ret_z(),
             0xc9 => self.ret(),
             0xca => self.jp_z_nn(),
             0xcb => self.cb(),
             0xcd => self.call_nn(),
+            0xd0 => self.ret_nc(),
             0xd1 => self.pop_r16(Reg16::DE),
             0xd5 => self.push_r16(Reg16::DE),
+            0xd6 => self.sub_n(),
             0xd8 => self.ret_c(),
             0xd9 => self.reti(),
             0xdd => panic!("Unknown Instruction"),
@@ -116,6 +156,7 @@ impl Cpu {
             0xf1 => self.pop_r16(Reg16::AF),
             0xf3 => self.di(),
             0xf5 => self.push_r16(Reg16::AF),
+            0xf6 => self.or_n(),
             0xfa => self.ld_a_nnptr(),
             0xfb => self.int.borrow_mut().enable_interrupts(),
             0xfe => self.cp_n(),
@@ -213,6 +254,8 @@ impl Cpu {
         regs.clear(Flags::HalfCarry);
     }
 
+
+
     fn ldd_hl_ptr_a(&mut self) {
         let mut mmu = self.mmu.borrow_mut();
         let mut regs = self.regs.borrow_mut();
@@ -269,21 +312,24 @@ impl Cpu {
     }
 
     fn or_r8(&mut self, r: Reg8) {
+        let r8_value = self.regs.borrow_mut().read_r8(r);
+        self.or(r8_value);
+    }
+
+    fn or_n(&mut self) {
+        //
+        let n = self.read_arg8();
+        self.or(n);
+    }
+
+    fn or(&mut self, value: u8) {
+        let mut a_value = self.regs.borrow_mut().read_r8(Reg8::A);
+        a_value |= value;
+
+        self.zero_flag_u8(a_value);
+
         let mut regs = self.regs.borrow_mut();
-        let mut a_value = regs.read_r8(Reg8::A);
-        let r8_value = regs.read_r8(r);
-
-        a_value |= r8_value;
-
         regs.write_r8(Reg8::A, a_value);
-
-        if a_value > 0 {
-            regs.clear(Flags::Zero);
-        } else {
-            regs.set(Flags::Zero);
-        }
-
-
         regs.clear(Flags::Carry);
         regs.clear(Flags::Negative);
         regs.clear(Flags::HalfCarry);
@@ -463,15 +509,15 @@ impl Cpu {
 
     fn inc_hlptr(&mut self) {
         let hl = self.regs.borrow().read_r16(Reg16::HL);
-        let value = self.mmu.borrow().read_u8(hl);
-        self.inc(value);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        value = self.inc(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
     fn dec_hlptr(&mut self) {
         let hl = self.regs.borrow().read_r16(Reg16::HL);
-        let value = self.mmu.borrow().read_u8(hl);
-        self.dec(value);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        value = self.dec(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
@@ -555,6 +601,16 @@ impl Cpu {
         }
     }
 
+    fn ret_nc(&mut self) {
+        if self.regs.borrow().check(Flags::Carry) {
+            self.ticks += 8;
+        } else {
+            self.ticks += 20;
+            let pc = self.pop_u16();
+            self.regs.borrow_mut().pc = pc;
+        }
+    }
+
     fn cpl(&self) {
         let a = !self.regs.borrow().a;
         self.regs.borrow_mut().a = a;
@@ -590,6 +646,21 @@ impl Cpu {
         self.regs.borrow_mut().write_r8(Reg8::A, result);
     }
 
+    fn add_a_n(&mut self) {
+        let n = self.read_arg8();
+        let a = self.regs.borrow().a;
+        let result = self.add(a, n);
+        self.regs.borrow_mut().a = result;
+    }
+
+    fn add_a_hlptr(&mut self) {
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
+        let a = self.regs.borrow().a;
+        let value = self.mmu.borrow().read_u8(hl);
+        let result = self.add(a, value);
+        self.regs.borrow_mut().a = result;
+    }
+
     fn ld_r8_r16ptr(&mut self, lhs: Reg8, rhs: Reg16) {
         let mut regs = self.regs.borrow_mut();
         let addr = regs.read_r16(rhs);
@@ -601,6 +672,106 @@ impl Cpu {
         let mut regs = self.regs.borrow_mut();
         let value = regs.read_r16(reg) + 1;
         regs.write_r16(reg, value);
+    }
+
+    fn ldd_a_hlptr(&self) {
+        let mut hl = self.regs.borrow().read_r16(Reg16::HL);
+        let value = self.mmu.borrow().read_u8(hl);
+        self.regs.borrow_mut().a = value;
+        hl -= 1;
+        self.regs.borrow_mut().write_r16(Reg16::HL, hl);
+    }
+
+    fn adc_r8(&mut self, reg: Reg8) {
+        let reg_value = self.regs.borrow().read_r8(reg);
+        self.adc(reg_value);
+    }
+
+    fn adc_hlptr(&mut self) {
+        let mut hl = self.regs.borrow().read_r16(Reg16::HL);
+        let value = self.mmu.borrow().read_u8(hl);
+        self.adc(value);
+    }
+
+    fn sub_n(&mut self) {
+        let n = self.read_arg8();
+        self.sub(n);
+    }
+
+    fn daa(&mut self) {
+        let mut s: u16 = self.regs.borrow().a as u16;
+        if self.regs.borrow().check(Flags::Negative) {
+            if self.regs.borrow().check(Flags::HalfCarry) {
+                s = (s - 0x06) & 0xff;
+            }
+            if self.regs.borrow().check(Flags::Carry) {
+                s = (s - 0x60);
+            }
+        } else {
+            if self.regs.borrow().check(Flags::HalfCarry) || (s & 0x0f) > 9 {
+                s += 0x06;
+            }
+            if self.regs.borrow().check(Flags::Carry) || s > 0x9f {
+                s += 0x60;
+            }
+        }
+
+        self.regs.borrow_mut().a = s as u8;
+        self.regs.borrow_mut().clear(Flags::HalfCarry);
+        self.zero_flag_u8(s as u8);
+
+        if s >= 0x100 {
+            self.regs.borrow_mut().set(Flags::Carry);
+        }
+
+    }
+
+
+
+
+
+    // Helper functions for common instructions
+    fn sub(&mut self, value: u8) {
+        self.regs.borrow_mut().set(Flags::Negative);
+        let mut a = self.regs.borrow().a;
+        self.carry_flag(value > a);
+        self.half_carry_flag((value & 0x0f) > (a & 0x0f));
+
+        a -= value;
+        self.regs.borrow_mut().a = a;
+        self.zero_flag_u8(a);
+    }
+    fn adc(&mut self, value: u8) {
+        let value = if self.regs.borrow().check(Flags::Carry) {
+            value + 1
+        } else {
+            value
+        };
+
+        let result = self.regs.borrow().a as u16 + value as u16;
+        self.carry_flag((result & 0xff00) != 0);
+        let a = self.regs.borrow().a;
+        self.zero_flag_bool(value == a);
+        self.half_carry_flag((value & 0x0f) + (a & 0x0f) > 0x0f);
+        self.regs.borrow_mut().set(Flags::Negative);
+        self.regs.borrow_mut().a = (result & 0xff) as u8;
+    }
+
+    fn inc(&mut self, value: u8) -> u8 {
+        self.half_carry_flag((value & 0x0f) == 0x0f);
+        // TODO should this be a wrapping add?
+        let value = value.wrapping_add(1);
+        self.zero_flag_u8(value);
+        self.regs.borrow_mut().clear(Flags::Negative);
+        return value;
+    }
+
+    fn dec(&mut self, value: u8) -> u8 {
+        self.half_carry_flag((value & 0x0f) == 0);
+        let value = value - 1;
+        self.zero_flag_u8(value);
+        self.regs.borrow_mut().set(Flags::Negative);
+        return value;
     }
 
     // jumps
@@ -617,6 +788,17 @@ impl Cpu {
             self.ticks += 16;
         } else {
             self.ticks += 12;
+        }
+    }
+
+    fn jp_nz_nn(&mut self) {
+        //
+        let nn = self.read_arg16();
+        if self.regs.borrow().check(Flags::Zero) {
+            self.ticks += 12;
+        } else {
+            self.ticks += 16;
+            self.regs.borrow_mut().pc = nn;
         }
     }
 
@@ -647,25 +829,6 @@ impl Cpu {
         let relative = self.read_arg8() as i8;
         let mut regs = self.regs.borrow_mut();
         regs.pc = ((regs.pc as i16) + relative as i16) as u16;
-    }
-
-
-    // Helper functions for common instructions
-
-    fn inc(&mut self, value: u8) -> u8 {
-        self.half_carry_flag((value & 0x0f) == 0x0f);
-        let value = value + 1;
-        self.zero_flag_u8(value);
-        self.regs.borrow_mut().clear(Flags::Negative);
-        return value;
-    }
-
-    fn dec(&mut self, value: u8) -> u8 {
-        self.half_carry_flag((value & 0x0f) == 0);
-        let value = value - 1;
-        self.zero_flag_u8(value);
-        self.regs.borrow_mut().set(Flags::Negative);
-        return value;
     }
 
     // Helper functions for stack
@@ -736,7 +899,25 @@ impl Cpu {
         let instruction = self.read_arg8();
 
         match instruction {
+            0x27 => self.sla_r8(Reg8::A),
+            0x33 => self.swap_r8(Reg8::E),
             0x37 => self.swap_r8(Reg8::A),
+            0x3f => self.srl_r8(Reg8::A),
+            0x40 => self.bit_n_r8(0, Reg8::B),
+            0x47 => self.bit_n_r8(0, Reg8::A),
+            0x48 => self.bit_n_r8(1, Reg8::B),
+            0x50 => self.bit_n_r8(2, Reg8::B),
+            0x5f => self.bit_n_r8(3, Reg8::A),
+            0x58 => self.bit_n_r8(3, Reg8::B),
+            0x60 => self.bit_n_r8(4, Reg8::B),
+            0x61 => self.bit_n_r8(4, Reg8::C),
+            0x68 => self.bit_n_r8(5, Reg8::B),
+            0x69 => self.bit_n_r8(5, Reg8::C),
+            0x6f => self.bit_n_r8(5, Reg8::A),
+            0x77 => self.bit_n_r8(6, Reg8::A),
+            0x7e => self.bit_n_hlptr(7),
+            0x7f => self.bit_n_r8(7, Reg8::A),
+            0x86 => self.res_bit_hlptr(0),
             0x87 => self.res_bit_r8(0, Reg8::A),
             _ => {
                 panic!("CB Instruction not implemented : {:02X} at pc : {:04X}",
@@ -760,12 +941,68 @@ impl Cpu {
         value
     }
 
+    fn sla(&self, value: u8) -> u8 {
+        self.carry_flag((value & 0x80) != 0);
+        let value = value << 1;
+        self.zero_flag_u8(value);
+        self.regs.borrow_mut().clear(Flags::Negative);
+        self.regs.borrow_mut().clear(Flags::HalfCarry);
+        return value;
+    }
+
+    fn bit(&self, bit: u8, value: u8) {
+        self.zero_flag_u8((value & bit));
+        self.regs.borrow_mut().clear(Flags::Negative);
+        self.regs.borrow_mut().set(Flags::HalfCarry);
+    }
+
+    fn srl(&mut self, value: u8) -> u8 {
+        self.carry_flag((value & 0x01) != 0);
+        let value = value >> 1;
+        self.zero_flag_u8(value);
+        self.regs.borrow_mut().clear(Flags::Negative);
+        self.regs.borrow_mut().clear(Flags::HalfCarry);
+        return value;
+    }
+
+    fn srl_r8(&mut self, reg: Reg8) {
+        let mut value = self.regs.borrow().read_r8(reg);
+        value = self.srl(value);
+        self.regs.borrow_mut().write_r8(reg, value);
+    }
+
+
+    fn bit_n_r8(&self, bit: u8, reg: Reg8) {
+        let val = self.regs.borrow().read_r8(reg);
+        self.bit((1 << bit), val);
+    }
+
+    fn bit_n_hlptr(&self, bit: u8) {
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
+        let value = self.mmu.borrow().read_u8(hl);
+        self.bit(bit, value);
+    }
+
+    fn sla_r8(&self, reg: Reg8) {
+        let mut value = self.regs.borrow().read_r8(reg);
+        value = self.sla(value);
+        self.regs.borrow_mut().write_r8(reg, value);
+    }
+
 
 
     fn swap_r8(&self, reg: Reg8) {
         let mut value = self.regs.borrow().read_r8(reg);
         value = self.swap(value);
         self.regs.borrow_mut().write_r8(reg, value);
+    }
+
+    fn res_bit_hlptr(&self, bit: u8) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        value &= !(1 << bit);
+        self.mmu.borrow_mut().write_u8(hl, value);
     }
 
     fn res_bit_r8(&self, bit: u8, reg: Reg8) {
