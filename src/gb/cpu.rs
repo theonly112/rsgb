@@ -160,6 +160,7 @@ impl Cpu {
             0xfa => self.ld_a_nnptr(),
             0xfb => self.int.borrow_mut().enable_interrupts(),
             0xfe => self.cp_n(),
+            0xff => self.rst(0x0038),
             _ => {
                 panic!("Instruction not implemented : {:02X} at pc : {:04X}",
                        instruction,
@@ -688,7 +689,7 @@ impl Cpu {
     }
 
     fn adc_hlptr(&mut self) {
-        let mut hl = self.regs.borrow().read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let value = self.mmu.borrow().read_u8(hl);
         self.adc(value);
     }
@@ -705,7 +706,7 @@ impl Cpu {
                 s = (s - 0x06) & 0xff;
             }
             if self.regs.borrow().check(Flags::Carry) {
-                s = (s - 0x60);
+                s = s - 0x60;
             }
         } else {
             if self.regs.borrow().check(Flags::HalfCarry) || (s & 0x0f) > 9 {

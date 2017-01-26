@@ -134,7 +134,7 @@ impl Gpu {
         let scanline = self.scanline;
         self.render_background(scanline);
         self.render_window();
-        // self.render_sprites();
+        self.render_sprites();
     }
 
     fn render_window(&self) {
@@ -233,24 +233,24 @@ impl Gpu {
 
     fn render_sprites(&mut self) {
         const GPU_CONTROL_TILEMAP: u8 = 8;
-        let mut map_offset = if (self.control & GPU_CONTROL_TILEMAP) != 0 {
+        let mut map_offset: u16 = if (self.control & GPU_CONTROL_TILEMAP) != 0 {
             0x1c00
         } else {
             0x1800
         };
 
-        map_offset += (((self.scanline + self.scroll_y) & 255) >> 3) << 5;
+        map_offset += (((self.scanline as u16 + self.scroll_y as u16) & 255) >> 3) << 5;
 
         let mut line_offset = self.scroll_x >> 3;
         let mut x = self.scroll_x & 7;
         let y = (self.scanline + self.scroll_y) & 7;
 
-        let mut pixel_offset = self.scanline * 160;
+        let mut pixel_offset: u16 = self.scanline as u16 * 160;
 
         const VRAM_OFFSET: u16 = 0x8000;
         let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
 
-        let mut tile = mmu.read_u8(VRAM_OFFSET + line_offset as u16);
+        let mut tile = mmu.read_u8(VRAM_OFFSET + map_offset + line_offset as u16);
 
         let mut scanline_row: [u8; 160] = [0; 160];
         for i in 0..160 {
@@ -263,41 +263,46 @@ impl Gpu {
             if x == 8 {
                 x = 0;
                 line_offset = (line_offset + 1) & 31;
-                tile = mmu.read_u8(map_offset as u16 + line_offset as u16);
+                tile = mmu.read_u8(VRAM_OFFSET + map_offset as u16 + line_offset as u16);
             }
         }
 
-        const oamOffset: u16 = 0xFE00;
-        const spriteSize: u16 = 4;
+        const OAM_OFFSET: u16 = 0xFE00;
+        const SPRITE_SIZE: u16 = 4;
 
         for i in 0..40 {
-            let sprite_y = mmu.read_u8(oamOffset + i * spriteSize) - 16;
-            let sprite_x = mmu.read_u8(oamOffset + i * spriteSize + 1) - 8;
-            let sprite_tilenumber = mmu.read_u8(oamOffset + i * spriteSize + 2);
-            let sprite_options = mmu.read_u8(oamOffset + i * spriteSize + 3);
+            let sprite_y: i16 = mmu.read_u8(OAM_OFFSET + i * SPRITE_SIZE) as i16 - 16;
+            let sprite_x: i16 = mmu.read_u8(OAM_OFFSET + i * SPRITE_SIZE + 1) as i16 - 8;
+            let sprite_tilenumber = mmu.read_u8(OAM_OFFSET + i * SPRITE_SIZE + 2);
+            let sprite_options = mmu.read_u8(OAM_OFFSET + i * SPRITE_SIZE + 3);
 
             let flipx = (sprite_options & 0x20) == 0x20;
             let flipy = (sprite_options & 0x40) == 0x40;
 
-            if sprite_y <= self.scanline && (sprite_y + 8) > self.scanline {
+            pixel_offset = (self.scanline as i16 * 160 + sprite_x) as u16;
+
+            if sprite_y <= self.scanline as i16 && (sprite_y + 8) > self.scanline as i16 {
                 let palette = if sprite_options & 0x10 != 0 { 1 } else { 0 };
 
-                let mut tile_row: u8 = 0;
+                let tile_row: usize;
                 if flipx {
-                    tile_row = 7 - (self.scanline - sprite_y);
+                    tile_row = (7 - (self.scanline as i16 - sprite_y)) as usize;
                 } else {
-                    tile_row = self.scanline - sprite_y;
+                    tile_row = (self.scanline as i16 - sprite_y) as usize;
                 }
 
                 for xx in 0..8 {
                     // todo priority
-                    if sprite_x + xx >= 0 {
-                        let mut color: u8 = 0;
+                    if sprite_x + xx >= 0 && sprite_x + xx < 160 {
+                        let color: u8;
                         if flipy {
-                            color = self.tiles[(7 - xx) as usize][tile_row as usize][sprite_tilenumber as usize];
+                            color = self.tiles[tile_row as usize][(7 - xx) as usize][sprite_tilenumber as usize];
                         } else {
-                            color = self.tiles[xx as usize][tile_row as usize][sprite_tilenumber as usize];
+                            color = self.tiles[tile_row as usize][xx as usize][sprite_tilenumber as usize];
                         }
+
+
+
                         if color > 0 {
                             let palette_offset: usize = palette * 4;
                             self.framebuffer[pixel_offset as usize].r =

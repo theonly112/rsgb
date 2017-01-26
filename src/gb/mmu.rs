@@ -85,11 +85,11 @@ impl Mmu {
                 0
             };
             let b = if self.read_u8(memory_address + 1) & bit_index > 0 {
-                1
+                2
             } else {
                 0
             };
-            self.gpu.borrow_mut().tiles[x as usize][y as usize][tile as usize] = a + b;
+            self.gpu.borrow_mut().tiles[y as usize][x as usize][tile as usize] = a + b;
 
             // self.gpu.borrow_mut().tiles[tile as usize][y as usize][x as usize] = a + b;
         }
@@ -147,7 +147,7 @@ impl MmuRead for Mmu {
             0x8000...0x9FFF => self.vram_write(addr, val),
             0xA000...0xBFFF => self.sram[(addr - 0xA000) as usize] = val,
             0xC000...0xDFFF => self.wram[(addr - 0xC000) as usize] = val,
-            0xE000...0xFDFF => panic!("wram not implemented"),
+            0xE000...0xFDFF => self.wram[(addr - 0xE000) as usize] = val,
             0xFE00...0xFEFF => self.oam[(addr - 0xfe00) as usize] = val,
             0xFF80...0xFFFE => self.hram[(addr - 0xff80) as usize] = val,
             0xFF40 => self.gpu.borrow_mut().set_control(val),

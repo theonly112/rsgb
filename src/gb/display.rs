@@ -9,6 +9,8 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::*;
 
+use std::mem::*;
+
 extern crate sdl2;
 extern crate time;
 
@@ -57,19 +59,22 @@ impl<'window> Display for SdlDisplay<'window> {
     fn draw(&mut self, framebuffer: [Color; 160 * 144]) {
         self.print_debug_info();
 
-        self.texture
-            .with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for y in 0..144 {
-                    for x in 0..160 {
-                        let color = framebuffer[y * 160 + x];
-                        let offset = y * pitch + x * 3;
-                        buffer[offset + 0] = color.r;
-                        buffer[offset + 1] = color.g;
-                        buffer[offset + 2] = color.b;
-                    }
-                }
-            })
-            .unwrap();
+        // self.texture
+        //     .with_lock(None, |buffer: &mut [u8], pitch: usize| {
+        //         for y in 0..144 {
+        //             for x in 0..160 {
+        //                 let color = framebuffer[y * 160 + x];
+        //                 let offset = y * pitch + x * 3;
+        //                 buffer[offset + 0] = color.r;
+        //                 buffer[offset + 1] = color.g;
+        //                 buffer[offset + 2] = color.b;
+        //             }
+        //         }
+        //     })
+        //     .unwrap();
+
+        let pixels: [u8; 160 * 144 * 3] = unsafe { transmute(framebuffer) };
+        self.texture.update(None, &pixels, 480).unwrap();
 
         let mut pump = self.context.event_pump().unwrap();
         pump.pump_events();
