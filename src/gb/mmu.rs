@@ -1,5 +1,6 @@
 use gb::catridge::Cartrige;
 use gb::gpu::Gpu;
+use gb::input::Input;
 use gb::component::SystemComponent;
 
 use std::rc::Rc;
@@ -8,6 +9,7 @@ use std::cell::RefCell;
 pub struct Mmu {
     cart: Rc<Cartrige>,
     gpu: Rc<RefCell<Gpu>>,
+    input: Rc<RefCell<Input>>,
     wram: [u8; 0x2000],
     hram: [u8; 0x0080],
     io: [u8; 0x0100],
@@ -19,7 +21,7 @@ pub struct Mmu {
 }
 
 impl Mmu {
-    pub fn new(cart: Rc<Cartrige>, gpu: Rc<RefCell<Gpu>>) -> Mmu {
+    pub fn new(cart: Rc<Cartrige>, gpu: Rc<RefCell<Gpu>>, input: Rc<RefCell<Input>>) -> Mmu {
         Mmu {
             cart: cart,
             wram: [0; 0x2000],
@@ -29,6 +31,7 @@ impl Mmu {
             vram: [0; 0x2000],
             sram: [0; 0x2000],
             gpu: gpu,
+            input: input,
             interupt_enable: 0,
             interupt_flag: 0,
         }
@@ -37,11 +40,13 @@ impl Mmu {
 
     fn read_input(&self) -> u8 {
         if self.io[0x00] & 0x20 == 0 {
-            let value = 0xC0 | 15 | 0x10;
+            // let value = 0xC0 | 15 | 0x10;
+            let value = 0xC0 | self.input.borrow().get_keys1() | 0x10;
             return value;
         }
         if self.io[0x00] & 0x10 == 0 {
-            let value = 0xC0 | 13 | 0x20;
+            // let value = 0xC0 | 13 | 0x20;
+            let value = 0xC0 | self.input.borrow().get_keys2() | 0x20;
             return value;
         }
         if self.io[0x00] & 0x30 == 0 {
@@ -90,8 +95,6 @@ impl Mmu {
                 0
             };
             self.gpu.borrow_mut().tiles[y as usize][x as usize][tile as usize] = a + b;
-
-            // self.gpu.borrow_mut().tiles[tile as usize][y as usize][x as usize] = a + b;
         }
     }
 

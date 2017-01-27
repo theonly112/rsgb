@@ -7,6 +7,7 @@ use gb::gpu::Gpu;
 use gb::interrupts::Interrupts;
 use gb::component::SystemComponent;
 use gb::display::*;
+use gb::input::Input;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -17,15 +18,17 @@ pub struct System {
     mmu: Rc<RefCell<Mmu>>,
     gpu: Rc<RefCell<Gpu>>,
     int: Rc<RefCell<Interrupts>>,
+    input: Rc<RefCell<Input>>,
 }
 
 impl System {
-    pub fn new(cart: Cartrige) -> System {
+    pub fn new(cart: Cartrige, input: Input) -> System {
         let gpu = Rc::new(RefCell::new(Gpu::new()));
         let regs = Rc::new(RefCell::new(Registers::new()));
         let cart = Rc::new(cart);
+        let input = Rc::new(RefCell::new(input));
 
-        let mmu = Mmu::new(cart.clone(), gpu.clone());
+        let mmu = Mmu::new(cart.clone(), gpu.clone(), input.clone());
         let mmu = Rc::new(RefCell::new(mmu));
         gpu.borrow_mut().mmu = Some(mmu.clone());
 
@@ -40,6 +43,7 @@ impl System {
             mmu: mmu,
             gpu: gpu,
             int: int,
+            input: input,
         }
     }
 
@@ -63,6 +67,7 @@ impl System {
             self.gpu.borrow_mut().step(ticks);
             let int_ticks = self.int.borrow_mut().step(&mut dis);
             self.cpu.ticks += int_ticks;
+            self.input.borrow_mut().step();
         }
     }
 }

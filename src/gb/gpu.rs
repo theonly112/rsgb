@@ -301,8 +301,6 @@ impl Gpu {
                             color = self.tiles[tile_row as usize][xx as usize][sprite_tilenumber as usize];
                         }
 
-
-
                         if color > 0 {
                             let palette_offset: usize = palette * 4;
                             self.framebuffer[pixel_offset as usize].r =

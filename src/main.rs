@@ -3,6 +3,7 @@ mod gb;
 use gb::catridge::Cartrige;
 use gb::system::System;
 use gb::display::*;
+use gb::input::*;
 
 use std::env;
 use std::path::Path;
@@ -19,10 +20,12 @@ fn main() {
         return;
     }
 
-    let mut display = SdlDisplay::new();
+    let context = sdl2::init().unwrap();
+    let mut display = SdlDisplay::new(context.clone());
+    let input = Input::new(context.clone());
 
     let path = Path::new(&args[1]);
     let c = Cartrige::from_path(path).unwrap();
-    let mut system = System::new(c);
+    let mut system = System::new(c, input);
     system.run(&mut display);
 }

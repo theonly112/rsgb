@@ -7,3 +7,4 @@ pub mod gpu;
 pub mod interrupts;
 pub mod component;
 pub mod display;
+pub mod input;

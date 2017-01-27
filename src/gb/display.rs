@@ -28,9 +28,9 @@ pub struct SdlDisplay<'window> {
 }
 
 impl<'window> SdlDisplay<'window> {
-    pub fn new() -> SdlDisplay<'window> {
+    pub fn new(context: Sdl) -> SdlDisplay<'window> {
 
-        let context = sdl2::init().unwrap();
+
         let video_subsystem = context.video().unwrap();
 
         let window = video_subsystem.window("rsgb", 160 * 4, 144 * 4)
@@ -59,25 +59,8 @@ impl<'window> Display for SdlDisplay<'window> {
     fn draw(&mut self, framebuffer: [Color; 160 * 144]) {
         self.print_debug_info();
 
-        // self.texture
-        //     .with_lock(None, |buffer: &mut [u8], pitch: usize| {
-        //         for y in 0..144 {
-        //             for x in 0..160 {
-        //                 let color = framebuffer[y * 160 + x];
-        //                 let offset = y * pitch + x * 3;
-        //                 buffer[offset + 0] = color.r;
-        //                 buffer[offset + 1] = color.g;
-        //                 buffer[offset + 2] = color.b;
-        //             }
-        //         }
-        //     })
-        //     .unwrap();
-
         let pixels: [u8; 160 * 144 * 3] = unsafe { transmute(framebuffer) };
         self.texture.update(None, &pixels, 480).unwrap();
-
-        let mut pump = self.context.event_pump().unwrap();
-        pump.pump_events();
 
         self.renderer.clear();
         self.renderer.copy(&self.texture, None, None).unwrap();
