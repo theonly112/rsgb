@@ -45,20 +45,20 @@ impl Input {
     pub fn get_keys1(&self) -> u8 {
         let mut keys1 = 0u8;
 
-        keys1 |= if self.a { 0 } else { 1 << 3 };
-        keys1 |= if self.b { 0 } else { 1 << 2 };
-        keys1 |= if self.select { 0 } else { 1 << 1 };
-        keys1 |= if self.start { 0 } else { 1 << 0 };
+        keys1 |= if self.start { 0 } else { 1 << 3 };
+        keys1 |= if self.select { 0 } else { 1 << 2 };
+        keys1 |= if self.b { 0 } else { 1 << 1 };
+        keys1 |= if self.a { 0 } else { 1 << 0 };
 
         return keys1;
     }
     pub fn get_keys2(&self) -> u8 {
         let mut keys1 = 0u8;
 
-        keys1 |= if self.right { 0 } else { 1 << 3 };
-        keys1 |= if self.left { 0 } else { 1 << 2 };
-        keys1 |= if self.up { 0 } else { 1 << 1 };
-        keys1 |= if self.down { 0 } else { 1 << 0 };
+        keys1 |= if self.down { 0 } else { 1 << 3 };
+        keys1 |= if self.up { 0 } else { 1 << 2 };
+        keys1 |= if self.left { 0 } else { 1 << 1 };
+        keys1 |= if self.right { 0 } else { 1 << 0 };
 
         return keys1;
     }

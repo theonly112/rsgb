@@ -1301,6 +1301,7 @@ impl Cpu {
             0x37 => self.swap_r8(Reg8::A),
             0x3f => self.srl_r8(Reg8::A),
             0x40 => self.bit_n_r8(0, Reg8::B),
+            0x41 => self.bit_n_r8(0, Reg8::C),
             0x47 => self.bit_n_r8(0, Reg8::A),
             0x48 => self.bit_n_r8(1, Reg8::B),
             0x4f => self.bit_n_r8(1, Reg8::A),
@@ -1314,12 +1315,18 @@ impl Cpu {
             0x69 => self.bit_n_r8(5, Reg8::C),
             0x6f => self.bit_n_r8(5, Reg8::A),
             0x70 => self.bit_n_r8(6, Reg8::B),
+            0x71 => self.bit_n_r8(6, Reg8::C),
             0x77 => self.bit_n_r8(6, Reg8::A),
             0x78 => self.bit_n_r8(7, Reg8::B),
+            0x79 => self.bit_n_r8(7, Reg8::C),
             0x7e => self.bit_n_hlptr(7),
             0x7f => self.bit_n_r8(7, Reg8::A),
             0x86 => self.res_bit_hlptr(0),
             0x87 => self.res_bit_r8(0, Reg8::A),
+            0x9e => self.res_bit_hlptr(3),
+            0xbe => self.res_bit_hlptr(7),
+            0xde => self.set_bit_hlptr(3),
+            0xfe => self.set_bit_hlptr(7),
             _ => {
                 panic!("CB Instruction not implemented : {:02X} at pc : {:04X}",
                        instruction,
@@ -1411,6 +1418,14 @@ impl Cpu {
         let mut value = regs.read_r8(reg);
         value &= !(1 << bit);
         regs.write_r8(reg, value);
+    }
+
+    fn set_bit_hlptr(&self, bit: u8) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        value |= 1 << bit;
+        self.mmu.borrow_mut().write_u8(hl, value);
     }
 }
 

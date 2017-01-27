@@ -6,6 +6,9 @@ use gb::component::SystemComponent;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+extern crate rand;
+use self::rand::*;
+
 pub struct Mmu {
     cart: Rc<Cartrige>,
     gpu: Rc<RefCell<Gpu>>,
@@ -126,7 +129,7 @@ impl MmuRead for Mmu {
             0xC000...0xDFFF => self.wram[(addr - 0xC000) as usize],
             0xE000...0xFDFF => self.wram[(addr - 0xE000) as usize],
             0xFE00...0xFEFF => self.oam[(addr - 0xFE00) as usize],
-            0xFF04 => panic!("pls do rand"),
+            0xFF04 => rand::thread_rng().gen::<u8>(), // TODO rand
             0xFF40 => self.gpu.borrow().control,
             0xFF42 => panic!(""),
             0xFF43 => panic!(""),
