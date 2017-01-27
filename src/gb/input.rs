@@ -29,7 +29,6 @@ impl Input {
         }
     }
     pub fn step(&mut self) {
-        self.reset_states();
         self.event_pump.pump_events();
         let state = sdl2::keyboard::KeyboardState::new(&self.event_pump);
 
@@ -62,16 +61,5 @@ impl Input {
         keys1 |= if self.down { 0 } else { 1 << 0 };
 
         return keys1;
-    }
-
-    fn reset_states(&mut self) {
-        self.a = false;
-        self.b = false;
-        self.start = false;
-        self.select = false;
-        self.up = false;
-        self.down = false;
-        self.left = false;
-        self.right = false;
     }
 }
