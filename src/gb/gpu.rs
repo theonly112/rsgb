@@ -5,11 +5,42 @@ use gb::interrupts::*;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+#[allow(dead_code)]
+pub struct Status {
+    pub lcdc: u8,
+    pub stat: u8,
+    pub scy: u8,
+    pub scx: u8,
+    pub ly: u8,
+    lyc: u8,
+    dma: u8,
+    wy: u8,
+    wx: u8,
+    vbk: u8,
+    bgpi: u8,
+    obpi: u8,
+}
+
+impl Status {
+    fn new() -> Status {
+        Status {
+            lcdc: 0,
+            stat: 0,
+            scy: 0,
+            scx: 0,
+            ly: 0,
+            lyc: 0,
+            dma: 0,
+            wy: 0,
+            wx: 0,
+            vbk: 0,
+            bgpi: 0,
+            obpi: 0,
+        }
+    }
+}
+
 pub struct Gpu {
-    scanline: u8,
-    scroll_x: u8,
-    scroll_y: u8,
-    pub control: u8,
     mode: GpuMode,
     tick: i32,
     last_ticks: i32,
@@ -18,6 +49,7 @@ pub struct Gpu {
     pub framebuffer: [Color; 160 * 144],
     pub tiles: [[[u8; 386]; 8]; 8],
     pub mmu: Option<Rc<RefCell<Mmu>>>,
+    pub status: Status,
 }
 
 enum GpuMode {
@@ -66,10 +98,6 @@ static PALETTE: [Color; 4] = [Color {
 impl Gpu {
     pub fn new() -> Gpu {
         Gpu {
-            scanline: 0,
-            scroll_x: 0,
-            scroll_y: 0,
-            control: 0,
             mode: GpuMode::HBlank,
             tick: 0,
             last_ticks: 0,
@@ -78,6 +106,7 @@ impl Gpu {
             framebuffer: [WHITE; 160 * 144],
             tiles: [[[0; 386]; 8]; 8],
             mmu: None,
+            status: Status::new(),
         }
     }
 
@@ -88,8 +117,8 @@ impl Gpu {
         match self.mode {
             GpuMode::HBlank => {
                 if self.tick >= 204 {
-                    self.scanline += 1;
-                    if self.scanline == 143 {
+                    self.status.ly += 1;
+                    if self.status.ly == 143 {
                         self.mode = GpuMode::VBlank;
                         let ref mut mmu = self.mmu.as_ref().unwrap().borrow_mut();
                         let enable = mmu.read_u8(INTERRUPT_ENABLE);
@@ -106,9 +135,9 @@ impl Gpu {
             }
             GpuMode::VBlank => {
                 if self.tick >= 456 {
-                    self.scanline += 1;
-                    if self.scanline > 153 {
-                        self.scanline = 0;
+                    self.status.ly += 1;
+                    if self.status.ly > 153 {
+                        self.status.ly = 0;
                         self.mode = GpuMode::OAM
                     }
                     self.tick -= 456;
@@ -131,7 +160,7 @@ impl Gpu {
     }
 
     fn render_scanline(&mut self) {
-        let scanline = self.scanline;
+        let scanline = self.status.ly;
         self.render_background(scanline);
         self.render_window();
         self.render_sprites();
@@ -156,7 +185,7 @@ impl Gpu {
         // TODO:
         let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
 
-        let lcdc = self.control;
+        let lcdc = self.status.lcdc;
         let line_width = line as i32 * 160;
 
         if self.is_bit_set(lcdc, 0) {
@@ -172,8 +201,8 @@ impl Gpu {
                 0x9800
             };
 
-            let scx = self.scroll_x;
-            let scy = self.scroll_y;
+            let scx = self.status.scx;
+            let scy = self.status.scy;
 
             let line_adjusted: u16 = line as u16 + scy as u16;
 
@@ -233,19 +262,19 @@ impl Gpu {
 
     fn render_sprites(&mut self) {
         const GPU_CONTROL_TILEMAP: u8 = 8;
-        let mut map_offset: u16 = if (self.control & GPU_CONTROL_TILEMAP) != 0 {
+        let mut map_offset: u16 = if (self.status.lcdc & GPU_CONTROL_TILEMAP) != 0 {
             0x1c00
         } else {
             0x1800
         };
 
-        map_offset += (((self.scanline as u16 + self.scroll_y as u16) & 255) >> 3) << 5;
+        map_offset += (((self.status.ly as u16 + self.status.scy as u16) & 255) >> 3) << 5;
 
-        let mut line_offset = self.scroll_x >> 3;
-        let mut x = self.scroll_x & 7;
-        let y = self.scanline.wrapping_add(self.scroll_y) & 7;
+        let mut line_offset = self.status.scx >> 3;
+        let mut x = self.status.scx & 7;
+        let y = self.status.ly.wrapping_add(self.status.scy) & 7;
 
-        let mut pixel_offset: u16 = self.scanline as u16 * 160;
+        let mut pixel_offset: u16 = self.status.ly as u16 * 160;
 
         const VRAM_OFFSET: u16 = 0x8000;
         let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
@@ -279,16 +308,16 @@ impl Gpu {
             let flipx = (sprite_options & 0x20) == 0x20;
             let flipy = (sprite_options & 0x40) == 0x40;
 
-            pixel_offset = (self.scanline as i16 * 160 + sprite_x) as u16;
+            pixel_offset = (self.status.ly as i16 * 160 + sprite_x) as u16;
 
-            if sprite_y <= self.scanline as i16 && (sprite_y + 8) > self.scanline as i16 {
+            if sprite_y <= self.status.ly as i16 && (sprite_y + 8) > self.status.ly as i16 {
                 let palette = if sprite_options & 0x10 != 0 { 1 } else { 0 };
 
                 let tile_row: usize;
                 if flipx {
-                    tile_row = (7 - (self.scanline as i16 - sprite_y)) as usize;
+                    tile_row = (7 - (self.status.ly as i16 - sprite_y)) as usize;
                 } else {
-                    tile_row = (self.scanline as i16 - sprite_y) as usize;
+                    tile_row = (self.status.ly as i16 - sprite_y) as usize;
                 }
 
                 for xx in 0..8 {
@@ -315,38 +344,6 @@ impl Gpu {
                 }
             }
         }
-    }
-
-    pub fn get_scanline(&self) -> u8 {
-        self.scanline
-    }
-
-
-    pub fn get_scroll_x(&self) -> u8 {
-        self.scroll_x
-    }
-
-
-    pub fn get_scroll_y(&self) -> u8 {
-        self.scroll_y
-    }
-
-    pub fn set_scroll_x(&mut self, value: u8) {
-        self.scroll_x = value;
-    }
-
-
-    pub fn set_scroll_y(&mut self, value: u8) {
-        self.scroll_y = value;
-    }
-
-    pub fn set_control(&mut self, value: u8) {
-        self.control = value;
-    }
-
-    #[allow(dead_code)]
-    pub fn set_scanline(&mut self, line: u8) {
-        self.scanline = line;
     }
 
     pub fn update_background_palette(&mut self, val: u8) {
