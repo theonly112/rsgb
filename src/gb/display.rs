@@ -3,17 +3,12 @@ use gb::gpu::Color;
 use sdl2::render::Renderer;
 use sdl2::render::Texture;
 use sdl2::pixels::PixelFormatEnum;
-#[allow(unused_imports)]
-use sdl2::event::Event;
-#[allow(unused_imports)]
-use sdl2::keyboard::Keycode;
-use sdl2::*;
+use sdl2::Sdl;
 
-use std::mem::*;
+use std::mem::transmute;
 
 extern crate sdl2;
 extern crate time;
-
 
 pub trait Display {
     fn draw(&mut self, framebuffer: [Color; 160 * 144]);
@@ -29,8 +24,6 @@ pub struct SdlDisplay<'window> {
 
 impl<'window> SdlDisplay<'window> {
     pub fn new(context: Sdl) -> SdlDisplay<'window> {
-
-
         let video_subsystem = context.video().unwrap();
 
         let window = video_subsystem.window("rsgb", 160 * 4, 144 * 4)
@@ -53,7 +46,6 @@ impl<'window> SdlDisplay<'window> {
         }
     }
 }
-
 
 impl<'window> Display for SdlDisplay<'window> {
     fn draw(&mut self, framebuffer: [Color; 160 * 144]) {
@@ -81,17 +73,3 @@ impl<'window> SdlDisplay<'window> {
 
     }
 }
-
-
-// let mut event_pump = self.context.event_pump().unwrap();
-//
-// 'running: loop {
-// for event in event_pump.poll_iter() {
-// match event {
-// Event::Quit { .. } |
-// Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
-// _ => {}
-// }
-// }
-// The rest of the game loop goes here...
-// }
