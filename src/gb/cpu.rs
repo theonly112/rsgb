@@ -1732,8 +1732,7 @@ impl Cpu {
     }
 
     fn rrc_hlptr(&self) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value = self.rrc(value);
         self.mmu.borrow_mut().write_u8(hl, value);
