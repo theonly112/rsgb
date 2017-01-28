@@ -166,7 +166,7 @@ impl MmuRead for Mmu {
             0xFF0F => self.interupt_flag = val,
             0xFF00...0xFF7F => {
                 self.io[(addr - 0xff00) as usize] = val;
-                if (addr == 0xff02) {
+                if addr == 0xff02 {
                     print!("{}", self.io[1]);
                 }
             }

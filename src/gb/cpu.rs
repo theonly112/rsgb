@@ -1088,7 +1088,7 @@ impl Cpu {
     // Helper functions for common instructions
     fn sub(&mut self, value: u8) {
         self.regs.borrow_mut().set(Flags::Negative);
-        let mut a = self.regs.borrow().a;
+        let a = self.regs.borrow().a;
         self.carry_flag(value > a);
         self.half_carry_flag((value & 0x0f) > (a & 0x0f));
 
@@ -1605,7 +1605,7 @@ impl Cpu {
     fn srl_hlptr(&mut self) {
         let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
-        let value = self.srl(value);
+        value = self.srl(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
@@ -1639,7 +1639,7 @@ impl Cpu {
         let regs = self.regs.borrow();
         let hl = regs.read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
-        let value = self.sra(value);
+        value = self.sra(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
@@ -1655,7 +1655,7 @@ impl Cpu {
         let regs = self.regs.borrow();
         let hl = regs.read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
-        let value = self.sla(value);
+        value = self.sla(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
@@ -1687,7 +1687,7 @@ impl Cpu {
         let regs = self.regs.borrow();
         let hl = regs.read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
-        let value = self.rl(value);
+        value = self.rl(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
@@ -1711,7 +1711,7 @@ impl Cpu {
         let regs = self.regs.borrow();
         let hl = regs.read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
-        let value = self.rlc(value);
+        value = self.rlc(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
@@ -1719,7 +1719,7 @@ impl Cpu {
         let carry = value & 0x01;
         let mut value = value >> 1;
         self.carry_flag(carry > 0);
-        if (carry > 0) {
+        if carry > 0 {
             value |= 0x80;
         }
 
@@ -1739,7 +1739,7 @@ impl Cpu {
         let regs = self.regs.borrow();
         let hl = regs.read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
-        let value = self.rrc(value);
+        value = self.rrc(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
