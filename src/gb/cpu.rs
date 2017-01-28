@@ -1088,11 +1088,11 @@ impl Cpu {
     // Helper functions for common instructions
     fn sub(&mut self, value: u8) {
         self.regs.borrow_mut().set(Flags::Negative);
-        let a = self.regs.borrow().a;
+        let mut a = self.regs.borrow().a;
         self.carry_flag(value > a);
         self.half_carry_flag((value & 0x0f) > (a & 0x0f));
 
-        a.wrapping_sub(value);
+        a = a.wrapping_sub(value);
         self.regs.borrow_mut().a = a;
         self.zero_flag_u8(a);
     }
@@ -1562,7 +1562,7 @@ impl Cpu {
     }
     // helpers
     fn swap(&self, value: u8) -> u8 {
-        let value = ((value & 0x0f) << 4) | ((value & 0x0f) >> 4);
+        let value = ((value & 0x0f) << 4) | ((value & 0xf0) >> 4);
         self.zero_flag_u8(value);
 
         let mut regs = self.regs.borrow_mut();

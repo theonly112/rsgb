@@ -13,8 +13,7 @@ extern crate sdl2;
 fn main() {
     let mut args: Vec<String> = env::args().collect();
     // debugging
-    args.push("./TestRoms/tetris.gb".to_string());
-
+    args.push("./TestRoms/cpu_instrs.gb".to_string());
     if args.len() < 2 {
         println!("Please provide the path to the rom as command line argument");
         return;
