@@ -1636,8 +1636,7 @@ impl Cpu {
     }
 
     fn sra_hlptr(&self) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value = self.sra(value);
         self.mmu.borrow_mut().write_u8(hl, value);
@@ -1652,8 +1651,7 @@ impl Cpu {
     }
 
     fn sla_hlptr(&self) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value = self.sla(value);
         self.mmu.borrow_mut().write_u8(hl, value);
@@ -1684,8 +1682,7 @@ impl Cpu {
     }
 
     fn rl_hlptr(&self) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value = self.rl(value);
         self.mmu.borrow_mut().write_u8(hl, value);
@@ -1708,8 +1705,7 @@ impl Cpu {
     }
 
     fn rlc_hlptr(&self) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value = self.rlc(value);
         self.mmu.borrow_mut().write_u8(hl, value);
