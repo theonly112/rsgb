@@ -1,4 +1,4 @@
-use gb::catridge::Cartrige;
+use gb::catridge::*;
 use gb::gpu::Gpu;
 use gb::input::Input;
 use gb::component::SystemComponent;
@@ -10,7 +10,6 @@ extern crate rand;
 use self::rand::*;
 
 pub struct Mmu {
-    cart: Rc<Cartrige>,
     gpu: Rc<RefCell<Gpu>>,
     input: Rc<RefCell<Input>>,
     wram: [u8; 0x2000],
@@ -18,25 +17,29 @@ pub struct Mmu {
     io: [u8; 0x0100],
     oam: [u8; 0x100],
     vram: [u8; 0x2000],
-    sram: [u8; 0x2000],
     interupt_enable: u8,
     interupt_flag: u8,
+    mbc: Box<Mbc>,
 }
 
 impl Mmu {
     pub fn new(cart: Rc<Cartrige>, gpu: Rc<RefCell<Gpu>>, input: Rc<RefCell<Input>>) -> Mmu {
+        let mbc: Box<Mbc> = match cart.cartirge_type {
+            CartridgeType::Mbc1 => Box::new(Mbc1::new(cart.clone())),
+            CartridgeType::Plain => Box::new(NoMbc::new(cart.clone())),
+            _ => panic!("not supported"),
+        };
         Mmu {
-            cart: cart,
             wram: [0; 0x2000],
             hram: [0; 0x0080],
             io: [0; 0x0100],
             oam: [0; 0x0100],
             vram: [0; 0x2000],
-            sram: [0; 0x2000],
             gpu: gpu,
             input: input,
             interupt_enable: 0,
             interupt_flag: 0,
+            mbc: mbc,
         }
     }
 
@@ -123,8 +126,8 @@ pub trait MmuRead {
 impl MmuRead for Mmu {
     fn read_u8(&self, addr: u16) -> u8 {
         match addr {
-            0x0000...0x7FFF => self.cart.rom[addr as usize],
-            0xA000...0xBFFF => self.sram[(addr - 0xA000) as usize],
+            0x0000...0x7FFF => self.mbc.read_u8(addr),
+            0xA000...0xBFFF => self.mbc.read_u8(addr),
             0x8000...0x9FFF => self.vram[(addr - 0x8000) as usize],
             0xC000...0xDFFF => self.wram[(addr - 0xC000) as usize],
             0xE000...0xFDFF => self.wram[(addr - 0xE000) as usize],
@@ -149,9 +152,9 @@ impl MmuRead for Mmu {
 
     fn write_u8(&mut self, addr: u16, val: u8) {
         match addr {
-            0x0000...0x7FFF => return,//panic!("mbc not implemented"),
+            0x0000...0x7FFF => self.mbc.write_u8(addr, val),//panic!("mbc not implemented"),
             0x8000...0x9FFF => self.vram_write(addr, val),
-            0xA000...0xBFFF => self.sram[(addr - 0xA000) as usize] = val,
+            0xA000...0xBFFF => self.mbc.write_u8(addr, val),
             0xC000...0xDFFF => self.wram[(addr - 0xC000) as usize] = val,
             0xE000...0xFDFF => self.wram[(addr - 0xE000) as usize] = val,
             0xFE00...0xFEFF => self.oam[(addr - 0xfe00) as usize] = val,
@@ -167,7 +170,7 @@ impl MmuRead for Mmu {
             0xFF00...0xFF7F => {
                 self.io[(addr - 0xff00) as usize] = val;
                 if addr == 0xff02 {
-                    print!("{}", self.io[1]);
+                    print!("{}", self.io[1] as char);
                 }
             }
             0xFFFF => self.interupt_enable = val,
@@ -180,6 +183,87 @@ impl MmuRead for Mmu {
         self.write_u8(addr + 1, ((val & 0xff00) >> 8) as u8);
     }
 }
+
+trait Mbc {
+    fn read_u8(&self, addr: u16) -> u8;
+    fn write_u8(&mut self, addr: u16, value: u8);
+}
+
+struct Mbc1 {
+    cart: Rc<Cartrige>,
+    ram: [[u8; 0x2000]; 4],
+    rom_bank: usize,
+    ram_bank: usize,
+    ram_mode: bool,
+}
+impl Mbc for Mbc1 {
+    fn read_u8(&self, addr: u16) -> u8 {
+        match addr {
+            0x0000...0x3fff => self.cart.rom[addr as usize],
+            0x4000...0x7fff => self.cart.rom[(addr as usize + 0x4000 * self.rom_bank)],
+            0xA000...0xbfff => self.ram[self.ram_bank][(addr - 0xa000) as usize],
+            _ => panic!("invalid read"),
+        }
+    }
+    fn write_u8(&mut self, addr: u16, value: u8) {
+        match addr {
+            0x2000...0x3fff => self.rom_bank = (value & 0x1f) as usize,
+            0x4000...0x5fff => {
+                if self.ram_mode {
+                    self.ram_bank = (value & 0x03) as usize;
+                } else {
+                    self.rom_bank =
+                        ((self.rom_bank & 0x1f) | ((value as usize & 0x03) << 5)) as usize;
+                }
+            }
+            0x5000...0x7fff => self.ram_mode = value == 1,
+            0xa000...0xbfff => self.ram[self.ram_bank][(addr - 0xa000) as usize] = value,
+            _ => panic!("invalid write"),
+        }
+    }
+}
+impl Mbc1 {
+    fn new(cart: Rc<Cartrige>) -> Mbc1 {
+        Mbc1 {
+            ram: [[0; 0x2000]; 4],
+            cart: cart,
+            rom_bank: 1,
+            ram_bank: 0,
+            ram_mode: false,
+        }
+    }
+}
+
+struct NoMbc {
+    cart: Rc<Cartrige>,
+    ram: [u8; 0x2000],
+}
+
+impl Mbc for NoMbc {
+    fn read_u8(&self, addr: u16) -> u8 {
+        match addr {
+            0x0000...0x7fff => self.cart.rom[addr as usize],
+            0xa000...0xbfff => self.ram[(addr - 0xa000) as usize],
+            _ => panic!("invalid read"),
+        }
+    }
+    fn write_u8(&mut self, addr: u16, value: u8) {
+        match addr {
+            0xA000...0xBFFF => self.ram[(addr - 0xA000) as usize] = value,
+            _ => {} // TODO: are these writes really save to ignore?
+        }
+    }
+}
+
+impl NoMbc {
+    fn new(cart: Rc<Cartrige>) -> NoMbc {
+        NoMbc {
+            ram: [0; 0x2000],
+            cart: cart,
+        }
+    }
+}
+
 
 impl SystemComponent for Mmu {
     fn reset(&mut self) {
