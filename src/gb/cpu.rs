@@ -1766,8 +1766,7 @@ impl Cpu {
     }
 
     fn rr_hlptr(&self) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value = self.rr(value);
         self.mmu.borrow_mut().write_u8(hl, value);
@@ -1780,38 +1779,33 @@ impl Cpu {
     }
 
     fn swap_hlptr(&self) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value = self.swap(value);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
     fn res_bit_hlptr(&self, bit: u8) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value &= !(1 << bit);
         self.mmu.borrow_mut().write_u8(hl, value);
     }
 
     fn res_bit_r8(&self, bit: u8, reg: Reg8) {
-        let mut regs = self.regs.borrow_mut();
-        let mut value = regs.read_r8(reg);
+        let mut value = self.regs.borrow_mut().read_r8(reg);
         value &= !(1 << bit);
-        regs.write_r8(reg, value);
+        self.regs.borrow_mut().write_r8(reg, value);
     }
 
     fn set_bit_r8(&self, bit: u8, reg: Reg8) {
-        let regs = self.regs.borrow();
-        let mut value = regs.read_r8(reg);
+        let mut value = self.regs.borrow().read_r8(reg);
         value |= 1 << bit;
         self.regs.borrow_mut().write_r8(reg, value);
     }
 
     fn set_bit_hlptr(&self, bit: u8) {
-        let regs = self.regs.borrow();
-        let hl = regs.read_r16(Reg16::HL);
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
         let mut value = self.mmu.borrow().read_u8(hl);
         value |= 1 << bit;
         self.mmu.borrow_mut().write_u8(hl, value);
