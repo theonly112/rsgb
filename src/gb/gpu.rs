@@ -199,7 +199,7 @@ impl Gpu {
                 let byte2 = mmu.read_u8((tile_address + 1) as u16);
                 for pixelx in 0..8 {
                     // TODO this -scx seems weird
-                    let buffer_x = map_offset + pixelx - scx as u16;
+                    let buffer_x = (map_offset + pixelx).wrapping_sub(scx as u16);
                     //if buffer_x < 0 {
                     //    continue;
                     //}
@@ -243,7 +243,7 @@ impl Gpu {
 
         let mut line_offset = self.scroll_x >> 3;
         let mut x = self.scroll_x & 7;
-        let y = (self.scanline + self.scroll_y) & 7;
+        let y = self.scanline.wrapping_add(self.scroll_y) & 7;
 
         let mut pixel_offset: u16 = self.scanline as u16 * 160;
 
@@ -321,9 +321,20 @@ impl Gpu {
         self.scanline
     }
 
+
+    pub fn get_scroll_x(&self) -> u8 {
+        self.scroll_x
+    }
+
+
+    pub fn get_scroll_y(&self) -> u8 {
+        self.scroll_y
+    }
+
     pub fn set_scroll_x(&mut self, value: u8) {
         self.scroll_x = value;
     }
+
 
     pub fn set_scroll_y(&mut self, value: u8) {
         self.scroll_y = value;

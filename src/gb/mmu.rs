@@ -131,8 +131,8 @@ impl MmuRead for Mmu {
             0xFE00...0xFEFF => self.oam[(addr - 0xFE00) as usize],
             0xFF04 => rand::thread_rng().gen::<u8>(), // TODO rand
             0xFF40 => self.gpu.borrow().control,
-            0xFF42 => panic!(""),
-            0xFF43 => panic!(""),
+            0xFF42 => self.gpu.borrow().get_scroll_y(),
+            0xFF43 => self.gpu.borrow().get_scroll_x(),
             0xFF44 => self.gpu.borrow().get_scanline(),
             0xFF00 => self.read_input(),
             0xFF0F => self.interupt_flag,
@@ -164,7 +164,12 @@ impl MmuRead for Mmu {
             0xFF48 => self.update_sprite_palette(0, val),
             0xFF49 => self.update_sprite_palette(1, val),
             0xFF0F => self.interupt_flag = val,
-            0xFF00...0xFF7F => self.io[(addr - 0xff00) as usize] = val,
+            0xFF00...0xFF7F => {
+                self.io[(addr - 0xff00) as usize] = val;
+                if (addr == 0xff02) {
+                    print!("{}", self.io[1]);
+                }
+            }
             0xFFFF => self.interupt_enable = val,
             _ => panic!("Not implemented"),
         }

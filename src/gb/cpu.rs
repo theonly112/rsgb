@@ -550,7 +550,7 @@ impl Cpu {
             regs.clear(Flags::HalfCarry);
         }
 
-        value += 1;
+        value = value.wrapping_add(1);
 
         if value > 0 {
             regs.clear(Flags::Zero);
@@ -952,7 +952,7 @@ impl Cpu {
 
     fn inc_r16(&self, reg: Reg16) {
         let mut regs = self.regs.borrow_mut();
-        let value = regs.read_r16(reg) + 1;
+        let value = regs.read_r16(reg).wrapping_add(1);
         regs.write_r16(reg, value);
     }
 
@@ -997,18 +997,17 @@ impl Cpu {
     }
 
     fn sbc(&mut self, value: u8) {
-        let value = value +
-                    if self.regs.borrow().check(Flags::Carry) {
+        let value = value.wrapping_add(if self.regs.borrow().check(Flags::Carry) {
             1
         } else {
             0
-        };
+        });
         self.regs.borrow_mut().set(Flags::Negative);
         let mut a = self.regs.borrow().a;
         self.carry_flag(value > a);
         self.zero_flag_bool(value == a);
         self.half_carry_flag((value & 0x0f) > (a & 0x0f));
-        a -= value;
+        a = a.wrapping_sub(value);
 
         self.regs.borrow_mut().a = a;
     }
@@ -1093,7 +1092,7 @@ impl Cpu {
         self.carry_flag(value > a);
         self.half_carry_flag((value & 0x0f) > (a & 0x0f));
 
-        a -= value;
+        a.wrapping_sub(value);
         self.regs.borrow_mut().a = a;
         self.zero_flag_u8(a);
     }
@@ -1296,37 +1295,262 @@ impl Cpu {
         let instruction = self.read_arg8();
 
         match instruction {
+            0x00 => self.rlc_r8(Reg8::B),
+            0x01 => self.rlc_r8(Reg8::C),
+            0x02 => self.rlc_r8(Reg8::D),
+            0x03 => self.rlc_r8(Reg8::E),
+            0x04 => self.rlc_r8(Reg8::H),
+            0x05 => self.rlc_r8(Reg8::L),
+            0x06 => self.rlc_hlptr(),
+            0x07 => self.rlc_r8(Reg8::A),
+            0x08 => self.rrc_r8(Reg8::B),
+            0x09 => self.rrc_r8(Reg8::C),
+            0x0a => self.rrc_r8(Reg8::D),
+            0x0b => self.rrc_r8(Reg8::E),
+            0x0c => self.rrc_r8(Reg8::H),
+            0x0d => self.rrc_r8(Reg8::L),
+            0x0e => self.rrc_hlptr(),
+            0x0f => self.rrc_r8(Reg8::A),
+            0x10 => self.rl_r8(Reg8::B),
+            0x11 => self.rl_r8(Reg8::C),
+            0x12 => self.rl_r8(Reg8::D),
+            0x13 => self.rl_r8(Reg8::E),
+            0x14 => self.rl_r8(Reg8::H),
+            0x15 => self.rl_r8(Reg8::L),
+            0x16 => self.rl_hlptr(),
+            0x17 => self.rl_r8(Reg8::A),
+            0x18 => self.rr_r8(Reg8::B),
+            0x19 => self.rr_r8(Reg8::C),
+            0x1a => self.rr_r8(Reg8::D),
+            0x1b => self.rr_r8(Reg8::E),
+            0x1c => self.rr_r8(Reg8::H),
+            0x1d => self.rr_r8(Reg8::L),
+            0x1e => self.rr_hlptr(),
+            0x1f => self.rr_r8(Reg8::A),
+            0x20 => self.sla_r8(Reg8::B),
+            0x21 => self.sla_r8(Reg8::C),
+            0x22 => self.sla_r8(Reg8::D),
+            0x23 => self.sla_r8(Reg8::E),
+            0x24 => self.sla_r8(Reg8::H),
+            0x25 => self.sla_r8(Reg8::L),
+            0x26 => self.sla_hlptr(),
             0x27 => self.sla_r8(Reg8::A),
+            0x28 => self.sra_r8(Reg8::B),
+            0x29 => self.sra_r8(Reg8::C),
+            0x2a => self.sra_r8(Reg8::D),
+            0x2b => self.sra_r8(Reg8::E),
+            0x2c => self.sra_r8(Reg8::H),
+            0x2d => self.sra_r8(Reg8::L),
+            0x2e => self.sra_hlptr(),
+            0x2f => self.sra_r8(Reg8::A),
+            0x30 => self.swap_r8(Reg8::B),
+            0x31 => self.swap_r8(Reg8::C),
+            0x32 => self.swap_r8(Reg8::D),
             0x33 => self.swap_r8(Reg8::E),
+            0x34 => self.swap_r8(Reg8::H),
+            0x35 => self.swap_r8(Reg8::L),
+            0x36 => self.swap_hlptr(),            
             0x37 => self.swap_r8(Reg8::A),
+            0x38 => self.srl_r8(Reg8::B),
+            0x39 => self.srl_r8(Reg8::C),
+            0x3a => self.srl_r8(Reg8::D),
+            0x3b => self.srl_r8(Reg8::E),
+            0x3c => self.srl_r8(Reg8::H),
+            0x3d => self.srl_r8(Reg8::L),
+            0x3e => self.srl_hlptr(),
             0x3f => self.srl_r8(Reg8::A),
             0x40 => self.bit_n_r8(0, Reg8::B),
             0x41 => self.bit_n_r8(0, Reg8::C),
+            0x42 => self.bit_n_r8(0, Reg8::D),
+            0x43 => self.bit_n_r8(0, Reg8::E),
+            0x44 => self.bit_n_r8(0, Reg8::H),
+            0x45 => self.bit_n_r8(0, Reg8::L),
+            0x46 => self.bit_n_hlptr(0),
             0x47 => self.bit_n_r8(0, Reg8::A),
             0x48 => self.bit_n_r8(1, Reg8::B),
+            0x49 => self.bit_n_r8(1, Reg8::C),
+            0x4a => self.bit_n_r8(1, Reg8::D),
+            0x4b => self.bit_n_r8(1, Reg8::E),
+            0x4c => self.bit_n_r8(1, Reg8::H),
+            0x4d => self.bit_n_r8(1, Reg8::L),
+            0x4e => self.bit_n_hlptr(1),
             0x4f => self.bit_n_r8(1, Reg8::A),
             0x50 => self.bit_n_r8(2, Reg8::B),
-            0x5f => self.bit_n_r8(3, Reg8::A),
+            0x51 => self.bit_n_r8(2, Reg8::C),
+            0x52 => self.bit_n_r8(2, Reg8::D),
+            0x53 => self.bit_n_r8(2, Reg8::E),
+            0x54 => self.bit_n_r8(2, Reg8::H),
+            0x55 => self.bit_n_r8(2, Reg8::L),
+            0x56 => self.bit_n_hlptr(2),
             0x57 => self.bit_n_r8(2, Reg8::A),
             0x58 => self.bit_n_r8(3, Reg8::B),
+            0x59 => self.bit_n_r8(3, Reg8::C),
+            0x5a => self.bit_n_r8(3, Reg8::D),
+            0x5b => self.bit_n_r8(3, Reg8::E),
+            0x5c => self.bit_n_r8(3, Reg8::H),
+            0x5d => self.bit_n_r8(3, Reg8::L),
+            0x5e => self.bit_n_hlptr(3),
+            0x5f => self.bit_n_r8(3, Reg8::A),
             0x60 => self.bit_n_r8(4, Reg8::B),
             0x61 => self.bit_n_r8(4, Reg8::C),
+            0x62 => self.bit_n_r8(4, Reg8::D),
+            0x63 => self.bit_n_r8(4, Reg8::E),
+            0x64 => self.bit_n_r8(4, Reg8::H),
+            0x65 => self.bit_n_r8(4, Reg8::L),
+            0x66 => self.bit_n_hlptr(4),
+            0x67 => self.bit_n_r8(4, Reg8::A),
             0x68 => self.bit_n_r8(5, Reg8::B),
             0x69 => self.bit_n_r8(5, Reg8::C),
+            0x6a => self.bit_n_r8(5, Reg8::D),
+            0x6b => self.bit_n_r8(5, Reg8::E),
+            0x6c => self.bit_n_r8(5, Reg8::H),
+            0x6d => self.bit_n_r8(5, Reg8::L),
+            0x6e => self.bit_n_hlptr(5),
             0x6f => self.bit_n_r8(5, Reg8::A),
             0x70 => self.bit_n_r8(6, Reg8::B),
             0x71 => self.bit_n_r8(6, Reg8::C),
+            0x72 => self.bit_n_r8(6, Reg8::D),
+            0x73 => self.bit_n_r8(6, Reg8::E),
+            0x74 => self.bit_n_r8(6, Reg8::H),
+            0x75 => self.bit_n_r8(6, Reg8::L),
+            0x76 => self.bit_n_hlptr(6),
             0x77 => self.bit_n_r8(6, Reg8::A),
             0x78 => self.bit_n_r8(7, Reg8::B),
             0x79 => self.bit_n_r8(7, Reg8::C),
+            0x7a => self.bit_n_r8(7, Reg8::D),
+            0x7b => self.bit_n_r8(7, Reg8::E),
+            0x7c => self.bit_n_r8(7, Reg8::H),
+            0x7d => self.bit_n_r8(7, Reg8::L),
             0x7e => self.bit_n_hlptr(7),
             0x7f => self.bit_n_r8(7, Reg8::A),
+            0x80 => self.res_bit_r8(0, Reg8::B),
+            0x81 => self.res_bit_r8(0, Reg8::C),
+            0x82 => self.res_bit_r8(0, Reg8::D),
+            0x83 => self.res_bit_r8(0, Reg8::E),
+            0x84 => self.res_bit_r8(0, Reg8::H),
+            0x85 => self.res_bit_r8(0, Reg8::L),
             0x86 => self.res_bit_hlptr(0),
             0x87 => self.res_bit_r8(0, Reg8::A),
+            0x88 => self.res_bit_r8(1, Reg8::B),
+            0x89 => self.res_bit_r8(1, Reg8::C),
+            0x8a => self.res_bit_r8(1, Reg8::D),
+            0x8b => self.res_bit_r8(1, Reg8::E),
+            0x8c => self.res_bit_r8(1, Reg8::H),
+            0x8d => self.res_bit_r8(1, Reg8::L),
+            0x8e => self.res_bit_hlptr(1),
+            0x8f => self.res_bit_r8(1, Reg8::A),
+            0x90 => self.res_bit_r8(2, Reg8::B),
+            0x91 => self.res_bit_r8(2, Reg8::C),
+            0x92 => self.res_bit_r8(2, Reg8::D),
+            0x93 => self.res_bit_r8(2, Reg8::E),
+            0x94 => self.res_bit_r8(2, Reg8::H),
+            0x95 => self.res_bit_r8(2, Reg8::L),
+            0x96 => self.res_bit_hlptr(2),
+            0x97 => self.res_bit_r8(2, Reg8::A),
+            0x98 => self.res_bit_r8(3, Reg8::B),
+            0x99 => self.res_bit_r8(3, Reg8::B),
+            0x9a => self.res_bit_r8(3, Reg8::B),
+            0x9b => self.res_bit_r8(3, Reg8::B),
+            0x9c => self.res_bit_r8(3, Reg8::B),
+            0x9d => self.res_bit_r8(3, Reg8::B),
             0x9e => self.res_bit_hlptr(3),
+            0x9f => self.res_bit_r8(3, Reg8::A),
+            0xa0 => self.res_bit_r8(4, Reg8::B),
+            0xa1 => self.res_bit_r8(4, Reg8::C),
+            0xa2 => self.res_bit_r8(4, Reg8::D),
+            0xa3 => self.res_bit_r8(4, Reg8::E),
+            0xa4 => self.res_bit_r8(4, Reg8::H),
+            0xa5 => self.res_bit_r8(4, Reg8::L),
+            0xa6 => self.res_bit_hlptr(4),
+            0xa7 => self.res_bit_r8(4, Reg8::A),
+            0xa8 => self.res_bit_r8(5, Reg8::B),
+            0xa9 => self.res_bit_r8(5, Reg8::C),
+            0xaa => self.res_bit_r8(5, Reg8::D),
+            0xab => self.res_bit_r8(5, Reg8::E),
+            0xac => self.res_bit_r8(5, Reg8::H),
+            0xad => self.res_bit_r8(5, Reg8::L),
+            0xae => self.res_bit_hlptr(5),
+            0xaf => self.res_bit_r8(5, Reg8::A),
+            0xb0 => self.res_bit_r8(6, Reg8::B),
+            0xb1 => self.res_bit_r8(6, Reg8::C),
+            0xb2 => self.res_bit_r8(6, Reg8::D),
+            0xb3 => self.res_bit_r8(6, Reg8::E),
+            0xb4 => self.res_bit_r8(6, Reg8::H),
+            0xb5 => self.res_bit_r8(6, Reg8::L),
+            0xb6 => self.res_bit_hlptr(6),
+            0xb7 => self.res_bit_r8(6, Reg8::A),
+            0xb8 => self.res_bit_r8(7, Reg8::B),
+            0xb9 => self.res_bit_r8(7, Reg8::C),
+            0xba => self.res_bit_r8(7, Reg8::D),
+            0xbb => self.res_bit_r8(7, Reg8::E),
+            0xbc => self.res_bit_r8(7, Reg8::H),
+            0xbd => self.res_bit_r8(7, Reg8::L),
             0xbe => self.res_bit_hlptr(7),
+            0xbf => self.res_bit_r8(7, Reg8::A),
+            0xc0 => self.set_bit_r8(0, Reg8::B),
+            0xc1 => self.set_bit_r8(0, Reg8::C),
+            0xc2 => self.set_bit_r8(0, Reg8::D),
+            0xc3 => self.set_bit_r8(0, Reg8::E),
+            0xc4 => self.set_bit_r8(0, Reg8::H),
+            0xc5 => self.set_bit_r8(0, Reg8::L),
+            0xc6 => self.set_bit_hlptr(0),
+            0xc7 => self.set_bit_r8(0, Reg8::A),
+            0xc8 => self.set_bit_r8(1, Reg8::B),
+            0xc9 => self.set_bit_r8(1, Reg8::C),
+            0xca => self.set_bit_r8(1, Reg8::D),
+            0xcb => self.set_bit_r8(1, Reg8::E),
+            0xcc => self.set_bit_r8(1, Reg8::H),
+            0xcd => self.set_bit_r8(1, Reg8::L),
+            0xce => self.set_bit_hlptr(1),
+            0xcf => self.set_bit_r8(1, Reg8::A),
+            0xd0 => self.set_bit_r8(2, Reg8::B),
+            0xd1 => self.set_bit_r8(2, Reg8::C),
+            0xd2 => self.set_bit_r8(2, Reg8::D),
+            0xd3 => self.set_bit_r8(2, Reg8::E),
+            0xd4 => self.set_bit_r8(2, Reg8::H),
+            0xd5 => self.set_bit_r8(2, Reg8::L),
+            0xd6 => self.set_bit_hlptr(2),
+            0xd7 => self.set_bit_r8(2, Reg8::A),
+            0xd8 => self.set_bit_r8(3, Reg8::B),
+            0xd9 => self.set_bit_r8(3, Reg8::C),
+            0xda => self.set_bit_r8(3, Reg8::D),
+            0xdb => self.set_bit_r8(3, Reg8::E),
+            0xdc => self.set_bit_r8(3, Reg8::H),
+            0xdd => self.set_bit_r8(3, Reg8::L),
             0xde => self.set_bit_hlptr(3),
+            0xdf => self.set_bit_r8(3, Reg8::A),
+            0xe0 => self.set_bit_r8(4, Reg8::B),
+            0xe1 => self.set_bit_r8(4, Reg8::C),
+            0xe2 => self.set_bit_r8(4, Reg8::D),
+            0xe3 => self.set_bit_r8(4, Reg8::E),
+            0xe4 => self.set_bit_r8(4, Reg8::H),
+            0xe5 => self.set_bit_r8(4, Reg8::L),
+            0xe6 => self.set_bit_hlptr(4),
+            0xe7 => self.set_bit_r8(4, Reg8::A),
+            0xe8 => self.set_bit_r8(5, Reg8::B),
+            0xe9 => self.set_bit_r8(5, Reg8::C),
+            0xea => self.set_bit_r8(5, Reg8::D),
+            0xeb => self.set_bit_r8(5, Reg8::E),
+            0xec => self.set_bit_r8(5, Reg8::H),
+            0xed => self.set_bit_r8(5, Reg8::L),
+            0xee => self.set_bit_hlptr(5),
+            0xef => self.set_bit_r8(5, Reg8::A),
+            0xf0 => self.set_bit_r8(6, Reg8::B), 
+            0xf1 => self.set_bit_r8(6, Reg8::C), 
+            0xf2 => self.set_bit_r8(6, Reg8::D), 
+            0xf3 => self.set_bit_r8(6, Reg8::E), 
+            0xf4 => self.set_bit_r8(6, Reg8::H), 
+            0xf5 => self.set_bit_r8(6, Reg8::L), 
+            0xf6 => self.set_bit_hlptr(6), 
+            0xf7 => self.set_bit_r8(6, Reg8::A), 
+            0xf8 => self.set_bit_r8(7, Reg8::B),
+            0xf9 => self.set_bit_r8(7, Reg8::C),
+            0xfa => self.set_bit_r8(7, Reg8::D),
+            0xfb => self.set_bit_r8(7, Reg8::E),
+            0xfc => self.set_bit_r8(7, Reg8::H),
+            0xfd => self.set_bit_r8(7, Reg8::L),
             0xfe => self.set_bit_hlptr(7),
+            0xff => self.set_bit_r8(7, Reg8::A),
             _ => {
                 panic!("CB Instruction not implemented : {:02X} at pc : {:04X}",
                        instruction,
@@ -1378,7 +1602,12 @@ impl Cpu {
         value = self.srl(value);
         self.regs.borrow_mut().write_r8(reg, value);
     }
-
+    fn srl_hlptr(&mut self) {
+        let hl = self.regs.borrow().read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        let value = self.srl(value);
+        self.mmu.borrow_mut().write_u8(hl, value);
+    }
 
     fn bit_n_r8(&self, bit: u8, reg: Reg8) {
         let val = self.regs.borrow().read_r8(reg);
@@ -1391,18 +1620,171 @@ impl Cpu {
         self.bit(bit, value);
     }
 
+    fn sra(&self, value: u8) -> u8 {
+        self.carry_flag((value & 0x01) > 0);
+        let value = (value & 0x80) | (value >> 1);
+        self.zero_flag_u8(value);
+        self.regs.borrow_mut().clear(Flags::Negative);
+        self.regs.borrow_mut().clear(Flags::HalfCarry);
+        return value;
+    }
+
+    fn sra_r8(&self, reg: Reg8) {
+        let mut value = self.regs.borrow().read_r8(reg);
+        value = self.sra(value);
+        self.regs.borrow_mut().write_r8(reg, value);
+    }
+
+    fn sra_hlptr(&self) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        let value = self.sra(value);
+        self.mmu.borrow_mut().write_u8(hl, value);
+    }
+
+
+
     fn sla_r8(&self, reg: Reg8) {
         let mut value = self.regs.borrow().read_r8(reg);
         value = self.sla(value);
         self.regs.borrow_mut().write_r8(reg, value);
     }
 
+    fn sla_hlptr(&self) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        let value = self.sla(value);
+        self.mmu.borrow_mut().write_u8(hl, value);
+    }
 
+    fn rl(&self, value: u8) -> u8 {
+        let carry = if self.regs.borrow().check(Flags::Carry) {
+            1
+        } else {
+            0
+        };
+
+        self.carry_flag((value & 0x80) > 0);
+        let mut value = value << 1;
+        value = value + carry as u8;
+
+        self.zero_flag_u8(value);
+
+        self.regs.borrow_mut().clear(Flags::Negative);
+        self.regs.borrow_mut().clear(Flags::HalfCarry);
+
+        return value;
+    }
+    fn rl_r8(&self, reg: Reg8) {
+        let mut value = self.regs.borrow().read_r8(reg);
+        value = self.rl(value);
+        self.regs.borrow_mut().write_r8(reg, value);
+    }
+
+    fn rl_hlptr(&self) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        let value = self.rl(value);
+        self.mmu.borrow_mut().write_u8(hl, value);
+    }
+
+    fn rlc(&self, value: u8) -> u8 {
+        let carry = (value & 0x80) >> 7;
+        self.carry_flag((value & 0x80) > 0);
+        let mut value = value << 1;
+        value = value + carry;
+        self.zero_flag_u8(value);
+        self.regs.borrow_mut().clear(Flags::Negative);
+        self.regs.borrow_mut().clear(Flags::HalfCarry);
+        return value;
+    }
+    fn rlc_r8(&self, reg: Reg8) {
+        let mut value = self.regs.borrow().read_r8(reg);
+        value = self.rlc(value);
+        self.regs.borrow_mut().write_r8(reg, value);
+    }
+
+    fn rlc_hlptr(&self) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        let value = self.rlc(value);
+        self.mmu.borrow_mut().write_u8(hl, value);
+    }
+
+    fn rrc(&self, value: u8) -> u8 {
+        let carry = value & 0x01;
+        let mut value = value >> 1;
+        self.carry_flag(carry > 0);
+        if (carry > 0) {
+            value |= 0x80;
+        }
+
+        self.zero_flag_u8(value);
+        self.regs.borrow_mut().clear(Flags::Negative);
+        self.regs.borrow_mut().clear(Flags::HalfCarry);
+        return value;
+    }
+
+    fn rrc_r8(&self, reg: Reg8) {
+        let mut value = self.regs.borrow().read_r8(reg);
+        value = self.rrc(value);
+        self.regs.borrow_mut().write_r8(reg, value);
+    }
+
+    fn rrc_hlptr(&self) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        let value = self.rrc(value);
+        self.mmu.borrow_mut().write_u8(hl, value);
+    }
+
+    fn rr(&self, value: u8) -> u8 {
+        let mut value = value >> 1;
+
+        if self.regs.borrow().check(Flags::Carry) {
+            value |= 0x80;
+        }
+
+        self.carry_flag((value & 0x01) > 0);
+        self.zero_flag_u8(value);
+
+        self.regs.borrow_mut().clear(Flags::Negative);
+        self.regs.borrow_mut().clear(Flags::HalfCarry);
+
+        return value;
+    }
+
+    fn rr_r8(&self, reg: Reg8) {
+        let mut value = self.regs.borrow().read_r8(reg);
+        value = self.rr(value);
+        self.regs.borrow_mut().write_r8(reg, value);
+    }
+
+    fn rr_hlptr(&self) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        value = self.rr(value);
+        self.mmu.borrow_mut().write_u8(hl, value);
+    }
 
     fn swap_r8(&self, reg: Reg8) {
         let mut value = self.regs.borrow().read_r8(reg);
         value = self.swap(value);
         self.regs.borrow_mut().write_r8(reg, value);
+    }
+
+    fn swap_hlptr(&self) {
+        let regs = self.regs.borrow();
+        let hl = regs.read_r16(Reg16::HL);
+        let mut value = self.mmu.borrow().read_u8(hl);
+        value = self.swap(value);
+        self.mmu.borrow_mut().write_u8(hl, value);
     }
 
     fn res_bit_hlptr(&self, bit: u8) {
@@ -1418,6 +1800,13 @@ impl Cpu {
         let mut value = regs.read_r8(reg);
         value &= !(1 << bit);
         regs.write_r8(reg, value);
+    }
+
+    fn set_bit_r8(&self, bit: u8, reg: Reg8) {
+        let regs = self.regs.borrow();
+        let mut value = regs.read_r8(reg);
+        value |= 1 << bit;
+        self.regs.borrow_mut().write_r8(reg, value);
     }
 
     fn set_bit_hlptr(&self, bit: u8) {
