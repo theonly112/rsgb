@@ -313,60 +313,56 @@ impl Gpu {
         let mut pixel_offset: u16 = self.status.ly as u16 * 160;
 
         const VRAM_OFFSET: u16 = 0x8000;
-        let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
 
-        let mut tile = mmu.read_u8(VRAM_OFFSET + map_offset + line_offset as u16);
+        let mut tile: u8 = 0;
 
         let mut scanline_row: [u8; 160] = [0; 160];
-        for i in 0..160 {
-            let color = self.tiles[x as usize][y as usize][tile as usize];
-            scanline_row[i] = color;
 
-            pixel_offset += 1;
-            x += 1;
+        {
+            let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
+            tile = mmu.read_u8(VRAM_OFFSET + map_offset + line_offset as u16);
+            for i in 0..160 {
+                let color = self.tiles[x as usize][y as usize][tile as usize];
+                scanline_row[i] = color;
 
-            if x == 8 {
-                x = 0;
-                line_offset = (line_offset + 1) & 31;
-                tile = mmu.read_u8(VRAM_OFFSET + map_offset as u16 + line_offset as u16);
+                pixel_offset += 1;
+                x += 1;
+
+                if x == 8 {
+                    x = 0;
+                    line_offset = (line_offset + 1) & 31;
+                    tile = mmu.read_u8(VRAM_OFFSET + map_offset as u16 + line_offset as u16);
+                }
             }
         }
 
-        const OAM_OFFSET: u16 = 0xFE00;
-        const SPRITE_SIZE: u16 = 4;
+
 
         for i in 0..40 {
-            let sprite_y: i16 = mmu.read_u8(OAM_OFFSET + i * SPRITE_SIZE) as i16 - 16;
-            let sprite_x: i16 = mmu.read_u8(OAM_OFFSET + i * SPRITE_SIZE + 1) as i16 - 8;
-            let sprite_tilenumber = mmu.read_u8(OAM_OFFSET + i * SPRITE_SIZE + 2);
-            let sprite_options = mmu.read_u8(OAM_OFFSET + i * SPRITE_SIZE + 3);
+            let sprite = Sprite::from_index(&mut self.mmu.as_ref().unwrap().borrow_mut(), i);
 
-            let flipx = (sprite_options & 0x20) == 0x20;
-            let flipy = (sprite_options & 0x40) == 0x40;
+            pixel_offset = (self.status.ly as i16 * 160 + sprite.x) as u16;
 
-            pixel_offset = (self.status.ly as i16 * 160 + sprite_x) as u16;
-
-            if sprite_y <= self.status.ly as i16 && (sprite_y + 8) > self.status.ly as i16 {
-                let palette = if sprite_options & 0x10 != 0 { 1 } else { 0 };
-
+            if sprite.y <= self.status.ly as i16 && (sprite.y + 8) > self.status.ly as i16 {
+                let palette = sprite.palette();
                 let tile_row: usize;
-                if flipx {
-                    tile_row = (7 - (self.status.ly as i16 - sprite_y)) as usize;
+                if sprite.flip_x() {
+                    tile_row = (7 - (self.status.ly as i16 - sprite.y)) as usize;
                 } else {
-                    tile_row = (self.status.ly as i16 - sprite_y) as usize;
+                    tile_row = (self.status.ly as i16 - sprite.y) as usize;
                 }
 
                 for xx in 0..8 {
                     // todo priority
-                    if sprite_x + xx >= 0 && sprite_x + xx < 160 {
+                    if sprite.x + xx >= 0 && sprite.x + xx < 160 {
                         let color: u8;
-                        if flipy {
-                            color = self.tiles[tile_row as usize][(7 - xx) as usize][sprite_tilenumber as usize];
+                        if sprite.flip_y() {
+                            color = self.tiles[tile_row as usize][(7 - xx) as usize][sprite.tile_number as usize];
                         } else {
-                            color = self.tiles[tile_row as usize][xx as usize][sprite_tilenumber as usize];
+                            color = self.tiles[tile_row as usize][xx as usize][sprite.tile_number as usize];
                         }
 
-                        if color > 0 {
+                        if color > 0 && sprite.above_bg() {
                             let palette_offset: usize = palette * 4;
                             self.framebuffer[pixel_offset as usize].r =
                                 self.sprite_palette[color as usize + palette_offset].r;
@@ -406,5 +402,47 @@ impl SystemComponent for Gpu {
                 self.sprite_palette[x * 4 + y] = PALETTE[y];
             }
         }
+    }
+}
+
+struct Sprite {
+    x: i16,
+    y: i16,
+    tile_number: u8,
+    options: u8,
+}
+
+impl Sprite {
+    fn from_index(mmu: &mut Mmu, index: u16) -> Sprite {
+        const OAM_OFFSET: u16 = 0xFE00;
+        const SPRITE_SIZE: u16 = 4;
+        let sprite_y = mmu.read_u8(OAM_OFFSET + index * SPRITE_SIZE) as i16 - 16;
+        let sprite_x = mmu.read_u8(OAM_OFFSET + index * SPRITE_SIZE + 1) as i16 - 8;
+        let sprite_tilenumber = mmu.read_u8(OAM_OFFSET + index * SPRITE_SIZE + 2);
+        let sprite_options = mmu.read_u8(OAM_OFFSET + index * SPRITE_SIZE + 3);
+
+        Sprite {
+            x: sprite_x,
+            y: sprite_y,
+            tile_number: sprite_tilenumber,
+            options: sprite_options,
+        }
+
+    }
+
+    fn above_bg(&self) -> bool {
+        self.options & (0x01 << 7) == 0
+    }
+
+    fn flip_x(&self) -> bool {
+        self.options & 0x20 == 0x20
+    }
+
+    fn flip_y(&self) -> bool {
+        self.options & 0x40 == 0x40
+    }
+
+    fn palette(&self) -> usize {
+        if self.options & 0x10 != 0 { 1 } else { 0 }
     }
 }
