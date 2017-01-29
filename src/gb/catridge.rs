@@ -20,6 +20,7 @@ impl Cartrige {
             cartirge_type: CartridgeType::from_u8(buff[0x0147]),
             rom: buff,
         };
+        println!("Cartrige {:?}", c.cartirge_type);
         Ok(c)
     }
 }
@@ -29,6 +30,7 @@ impl Cartrige {
 pub enum CartridgeType {
     Plain,
     Mbc1,
+    Mbc1Ram,
     Unknown,
 }
 
@@ -37,6 +39,7 @@ impl CartridgeType {
         match value {
             0 => CartridgeType::Plain,
             1 => CartridgeType::Mbc1,
+            2 => CartridgeType::Mbc1Ram,
             _ => CartridgeType::Unknown, 
         }
     }

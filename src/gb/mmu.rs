@@ -25,7 +25,8 @@ pub struct Mmu {
 impl Mmu {
     pub fn new(cart: Rc<Cartrige>, gpu: Rc<RefCell<Gpu>>, input: Rc<RefCell<Input>>) -> Mmu {
         let mbc: Box<Mbc> = match cart.cartirge_type {
-            CartridgeType::Mbc1 => Box::new(Mbc1::new(cart.clone())),
+            CartridgeType::Mbc1 |
+            CartridgeType::Mbc1Ram => Box::new(Mbc1::new(cart.clone())),
             CartridgeType::Plain => Box::new(NoMbc::new(cart.clone())),
             _ => panic!("not supported"),
         };

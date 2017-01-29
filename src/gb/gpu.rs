@@ -42,8 +42,12 @@ impl Status {
     fn display_enabled(&self) -> bool {
         self.lcdc & (0x01 << 7) == 1
     }
-    fn window_tilemap(&self) -> bool {
-        self.lcdc & (0x01 << 6) == 1
+    fn window_tilemap(&self) -> u16 {
+        if self.lcdc & (0x01 << 6) == 1 {
+            0x8000
+        } else {
+            0x9000
+        }
     }
     fn window_enabled(&self) -> bool {
         self.lcdc & (0x01 << 5) == 1
@@ -195,10 +199,15 @@ impl Gpu {
     }
 
     fn render_scanline(&mut self) {
-        let scanline = self.status.ly;
-        self.render_background(scanline);
-        self.render_window();
-        self.render_sprites();
+        // if (self.status.bg_enabled()) {
+        self.render_background();
+        //
+        if (self.status.window_enabled()) {
+            self.render_window();
+        }
+        if (self.status.ob_enabled()) {
+            self.render_sprites();
+        }
     }
 
     pub fn clear_framebuffer(&mut self) {
@@ -206,20 +215,24 @@ impl Gpu {
     }
 
     fn render_window(&self) {
-        // let ref mmu = match (self.mmu) {
-        //   Some(ref mmu) => mmu,
-        //    None => panic!("..."),
-        // };
+        let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
+        let tiles = self.status.window_tilemap();
+        let map = self.status.bg_tilemap();
 
-        // let ref mmu = self.mmu.as_ref().unwrap();
-        // mmu.borrow_mut();
-        // TODO:
+        let tileY = self.status.wy / 8;
+        let tileYOffset = self.status.wy % 8;
+
+        for x in 0..160 {
+            if x < self.status.wx {
+                continue;
+            }
+        }
     }
 
-    fn render_background(&mut self, line: u8) {
+    fn render_background(&mut self) {
         let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
 
-        let line_width = line as i32 * 160;
+        let line_width = self.status.ly as i32 * 160;
 
         if self.status.bg_enabled() {
             let tiles = self.status.bg_tile_data();
@@ -227,7 +240,7 @@ impl Gpu {
             let scx = self.status.scx;
             let scy = self.status.scy;
 
-            let line_adjusted: u16 = line as u16 + scy as u16;
+            let line_adjusted: u16 = self.status.ly as u16 + scy as u16;
 
             let y_32: u16 = ((line_adjusted / 8) * 32) as u16;
             let pixely: u16 = (line_adjusted % 8) as u16;
