@@ -201,14 +201,16 @@ impl Mbc for Mbc1 {
     fn read_u8(&self, addr: u16) -> u8 {
         match addr {
             0x0000...0x3fff => self.cart.rom[addr as usize],
-            0x4000...0x7fff => self.cart.rom[(addr as usize + 0x4000 * self.rom_bank)],
+            0x4000...0x7fff => self.cart.rom[((addr - 0x4000) as usize + 0x4000 * self.rom_bank)],
             0xA000...0xbfff => self.ram[self.ram_bank][(addr - 0xa000) as usize],
             _ => panic!("invalid read"),
         }
     }
     fn write_u8(&mut self, addr: u16, value: u8) {
         match addr {
-            0x2000...0x3fff => self.rom_bank = (value & 0x1f) as usize,
+            0x2000...0x3fff => {
+                self.rom_bank = ((value & 0x1f) + if (value & 0x1f) == 0 { 1 } else { 0 }) as usize
+            }
             0x4000...0x5fff => {
                 if self.ram_mode {
                     self.ram_bank = (value & 0x03) as usize;
@@ -217,9 +219,9 @@ impl Mbc for Mbc1 {
                         ((self.rom_bank & 0x1f) | ((value as usize & 0x03) << 5)) as usize;
                 }
             }
-            0x5000...0x7fff => self.ram_mode = value == 1,
+            0x6000...0x7fff => self.ram_mode = value == 1,
             0xa000...0xbfff => self.ram[self.ram_bank][(addr - 0xa000) as usize] = value,
-            _ => panic!("invalid write"),
+            _ => return, //panic!("invalid write"),
         }
     }
 }
