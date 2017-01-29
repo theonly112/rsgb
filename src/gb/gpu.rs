@@ -40,7 +40,7 @@ impl Status {
     }
 
     fn display_enabled(&self) -> bool {
-        self.lcdc & (0x01 << 7) == 1
+        self.lcdc & (0x01 << 7) > 1
     }
     fn window_tilemap(&self) -> u16 {
         if self.lcdc & (0x01 << 6) == 1 {
@@ -50,18 +50,18 @@ impl Status {
         }
     }
     fn window_enabled(&self) -> bool {
-        self.lcdc & (0x01 << 5) == 1
+        self.lcdc & (0x01 << 5) > 1
     }
 
     fn bg_tile_data(&self) -> u16 {
-        if self.lcdc & (0x01 << 4) == 1 {
+        if self.lcdc & (0x01 << 4) > 1 {
             0x8000
         } else {
             0x8800
         }
     }
     fn bg_tilemap(&self) -> u16 {
-        if self.lcdc & (0x01 << 3) == 1 {
+        if self.lcdc & (0x01 << 3) > 1 {
             0x9C00
         } else {
             0x9800
@@ -69,10 +69,10 @@ impl Status {
     }
 
     fn ob_size(&self) -> bool {
-        self.lcdc & (0x01 << 2) == 1
+        self.lcdc & (0x01 << 2) > 0
     }
     fn ob_enabled(&self) -> bool {
-        self.lcdc & (0x01 << 1) == 1
+        self.lcdc & (0x01 << 1) > 0
     }
     fn bg_enabled(&self) -> bool {
         self.lcdc & (0x01 << 0) == 1
@@ -199,13 +199,13 @@ impl Gpu {
     }
 
     fn render_scanline(&mut self) {
-        // if (self.status.bg_enabled()) {
-        self.render_background();
-        //
-        if (self.status.window_enabled()) {
+        if self.status.bg_enabled() {
+            self.render_background();
+        }
+        if self.status.window_enabled() {
             self.render_window();
         }
-        if (self.status.ob_enabled()) {
+        if self.status.ob_enabled() {
             self.render_sprites();
         }
     }
