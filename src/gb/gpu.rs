@@ -20,7 +20,7 @@ pub struct Status {
     bgpi: u8,
     obpi: u8,
 }
-
+#[allow(dead_code)]
 impl Status {
     fn new() -> Status {
         Status {
@@ -37,6 +37,41 @@ impl Status {
             bgpi: 0,
             obpi: 0,
         }
+    }
+
+    fn display_enabled(&self) -> bool {
+        self.lcdc & (0x01 << 7) == 1
+    }
+    fn window_tilemap(&self) -> bool {
+        self.lcdc & (0x01 << 6) == 1
+    }
+    fn window_enabled(&self) -> bool {
+        self.lcdc & (0x01 << 5) == 1
+    }
+
+    fn bg_tile_data(&self) -> u16 {
+        if self.lcdc & (0x01 << 4) == 1 {
+            0x8000
+        } else {
+            0x8800
+        }
+    }
+    fn bg_tilemap(&self) -> u16 {
+        if self.lcdc & (0x01 << 3) == 1 {
+            0x9C00
+        } else {
+            0x9800
+        }
+    }
+
+    fn ob_size(&self) -> bool {
+        self.lcdc & (0x01 << 2) == 1
+    }
+    fn ob_enabled(&self) -> bool {
+        self.lcdc & (0x01 << 1) == 1
+    }
+    fn bg_enabled(&self) -> bool {
+        self.lcdc & (0x01 << 0) == 1
     }
 }
 
@@ -166,6 +201,10 @@ impl Gpu {
         self.render_sprites();
     }
 
+    pub fn clear_framebuffer(&mut self) {
+        self.framebuffer = [WHITE; 160 * 144];
+    }
+
     fn render_window(&self) {
         // let ref mmu = match (self.mmu) {
         //   Some(ref mmu) => mmu,
@@ -177,30 +216,14 @@ impl Gpu {
         // TODO:
     }
 
-    fn is_bit_set(&self, value: u8, bit: u8) -> bool {
-        (value & (0x01 << bit)) != 0
-    }
-
     fn render_background(&mut self, line: u8) {
-        // TODO:
         let ref mmu = self.mmu.as_ref().unwrap().borrow_mut();
 
-        let lcdc = self.status.lcdc;
         let line_width = line as i32 * 160;
 
-        if self.is_bit_set(lcdc, 0) {
-            let tiles: u16 = if self.is_bit_set(lcdc, 4) {
-                0x8000
-            } else {
-                0x8800
-            };
-
-            let map: u16 = if self.is_bit_set(lcdc, 3) {
-                0x9C00
-            } else {
-                0x9800
-            };
-
+        if self.status.bg_enabled() {
+            let tiles = self.status.bg_tile_data();
+            let map = self.status.bg_tilemap();
             let scx = self.status.scx;
             let scy = self.status.scy;
 

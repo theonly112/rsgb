@@ -104,8 +104,7 @@ impl Interrupts {
 
         // TODO cpu ticks += 12
         display.draw(self.gpu.borrow().framebuffer);
-
-
+        self.gpu.borrow_mut().clear_framebuffer();
     }
     pub fn handle_lcdstat(&mut self) {
         println!("lcdstat");
