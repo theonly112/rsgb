@@ -56,9 +56,10 @@ impl System {
         // let mut buffer = File::create("exec.log").unwrap();
         while true {
             // write!(&mut buffer,
-            //        "{:?} TK: {}\n",
+            //        "{:?} TK: {} {:?}\n",
             //        self.registers.borrow(),
-            //        self.cpu.ticks)
+            //        self.cpu.ticks,
+            //        self.int.borrow())
             //     .unwrap();
             let pc = self.registers.borrow().pc;
             let instruction = self.mmu.borrow().read_u8(self.registers.borrow().pc);

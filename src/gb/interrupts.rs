@@ -135,3 +135,16 @@ impl Interrupts {
         self.regs.borrow_mut().pc = 0x60;
     }
 }
+
+use std::fmt;
+impl fmt::Debug for Interrupts {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let flag = self.mmu.borrow_mut().read_u8(INTERRUPT_FLAG);
+        let enable = self.mmu.borrow_mut().read_u8(INTERRUPT_ENABLE);
+        write!(f,
+               "MASTER: {} ENABLE: {:02X} FLAG: {:02X}",
+               if self.master { 1 } else { 0 },
+               enable,
+               flag)
+    }
+}
