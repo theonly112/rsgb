@@ -20,6 +20,7 @@ pub struct Status {
     bgpi: u8,
     obpi: u8,
 }
+
 #[allow(dead_code)]
 impl Status {
     fn new() -> Status {

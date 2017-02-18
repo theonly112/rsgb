@@ -133,7 +133,7 @@ impl MmuRead for Mmu {
             0xC000...0xDFFF => self.wram[(addr - 0xC000) as usize],
             0xE000...0xFDFF => self.wram[(addr - 0xE000) as usize],
             0xFE00...0xFEFF => self.oam[(addr - 0xFE00) as usize],
-            0xFF04 => rand::thread_rng().gen::<u8>(), // TODO rand
+            0xFF04 => rand::thread_rng().gen::<u8>(),
             0xFF40 => self.gpu.borrow().status.lcdc,
             0xFF42 => self.gpu.borrow().status.scy,
             0xFF43 => self.gpu.borrow().status.scx,
@@ -153,7 +153,7 @@ impl MmuRead for Mmu {
 
     fn write_u8(&mut self, addr: u16, val: u8) {
         match addr {
-            0x0000...0x7FFF => self.mbc.write_u8(addr, val),//panic!("mbc not implemented"),
+            0x0000...0x7FFF => self.mbc.write_u8(addr, val),
             0x8000...0x9FFF => self.vram_write(addr, val),
             0xA000...0xBFFF => self.mbc.write_u8(addr, val),
             0xC000...0xDFFF => self.wram[(addr - 0xC000) as usize] = val,
